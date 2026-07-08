@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # 1. Base de données Transactionnelle & Vectorielle (RAG)
+  postgres-db:
+    image: pgvector/pgvector:pg16
+    container_name: p2p_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: insurance_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./infra/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # 2. Base de données Graphe (Détection de Fraude / Réseaux)
+  neo4j-db:
+    image: neo4j:5.15
+    container_name: p2p_neo4j
+    restart: always
+    environment:
+      NEO4J_AUTH: neo4j/password
+    ports:
+      - "7474:7474" # Interface web Neo4j (Browser)
+      - "7687:7687" # Port de connexion pour l'API (Bolt)
+    volumes:
+      - ./data/neo4j:/data
+
+  # ======================================================================
+  # KAFKA — Bus d'événements (mode KRaft, sans Zookeeper)
+  # Image officielle Apache (PAS Bitnami, dont l'accès public est
+  # désormais restreint depuis fin 2025 — cf. Bitnami Secure Images)
+  # ======================================================================
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: p2p_kafka
+    restart: always
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093,EXTERNAL://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CLUSTER_ID: "p2p-insurance-cluster-01"
+    ports:
+      - "9094:9094"
+    volumes:
+      - ./data/kafka:/var/lib/kafka/data
