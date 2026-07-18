@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+pydantic
+pyjwt
+cryptography
+kafka-python
+python-dotenv
+python-multipart
