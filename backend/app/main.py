@@ -2,8 +2,10 @@
 Point d'entrée de l'API FastAPI.
 Chaque module expose son router, monté ici avec son préfixe.
 """
-from fastapi import FastAPI
+from dotenv import load_dotenv
+load_dotenv()
 
+from fastapi import FastAPI
 # Modules of Personne A (missing on this branch)
 # from app.modules.users_kyc.router import router as users_kyc_router
 # from app.modules.groups.router import router as groups_router
