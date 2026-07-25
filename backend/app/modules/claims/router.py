@@ -11,10 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_current_user, require_role, TokenPayload
 from app.core.database import get_session
 from app.modules.claims import service
-from app.modules.claims.schemas import (
-    ClaimCreate, ClaimResponse, ClaimValidate, ClaimReject,
-    PieceJustificativeResponse, AlerteFraudeResponse,
-)
+from app.modules.claims.schemas import *
 from app.modules.claims import repository
 
 router = APIRouter(prefix="/claims", tags=["claims"])

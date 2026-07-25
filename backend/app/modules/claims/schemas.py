@@ -55,7 +55,7 @@ class PieceJustificativeResponse(BaseModel):
     """Réponse API pour une pièce justificative."""
     id: UUID
     sinistre_id: UUID
-    s3_url: str
+    hdfs_url: str
     type_fichier: Optional[str] = None
     texte_ocr: Optional[str] = None
 

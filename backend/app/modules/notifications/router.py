@@ -1,8 +1,4 @@
-"""
-Router FastAPI du module notifications.
-Contient uniquement les endpoints HTTP : validation des entrées (Pydantic),
-appel au service, retour de la réponse. Aucune logique métier ici.
-"""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
