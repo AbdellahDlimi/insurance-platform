@@ -56,3 +56,11 @@ services:
       - "9094:9094"
     volumes:
       - ./data/kafka:/var/lib/kafka/data
+
+  # 4. Interface Web pour visualiser PostgreSQL (Adminer)
+  adminer:
+    image: adminer
+    container_name: p2p_adminer
+    restart: always
+    ports:
+      - "8080:8080"

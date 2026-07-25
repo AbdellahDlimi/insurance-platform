@@ -5,6 +5,10 @@ psycopg2-binary
 pydantic
 pyjwt
 cryptography
+passlib[bcrypt]
+bcrypt==4.0.1
 kafka-python
 python-dotenv
 python-multipart
+email-validator
+apscheduler
