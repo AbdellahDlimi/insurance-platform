@@ -3,7 +3,11 @@ data/
 
 # Environnements virtuels et dépendances
 venv/
+.venv/
+backend/.venv/
 __pycache__/
+*.pyc
+*.pyd
 node_modules/
 
 # Variables d'environnement
