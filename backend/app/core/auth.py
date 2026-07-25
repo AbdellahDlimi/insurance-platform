@@ -4,27 +4,27 @@ Personne A (Utilisateurs/KYC) émet les tokens (login/refresh).
 Tout le monde (A et B) importe get_current_user() et require_role() ici —
 personne ne réécrit sa propre vérification de token.
 """
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import jwt
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import os
-from dotenv import load_dotenv
+from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 
-load_dotenv()
-
-SECRET_KEY = os.environ.get(
-    "JWT_SECRET_KEY",
-    "9a7c36a4f210d7e6ab230de57cf89541a293c66f56b0932ed09b11910a30b42c"
-)
+# --- Configuration (lue depuis les variables d'environnement) ---
+SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "JWT_SECRET_KEY manquante dans les variables d'environnement. "
+        "Ajoutez-la dans votre fichier .env"
+    )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
-security = HTTPBearer()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users_kyc/login")
 
 
 class TokenPayload(BaseModel):
@@ -51,7 +51,7 @@ def create_refresh_token(payload: TokenPayload) -> str:
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> TokenPayload:
+def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenPayload:
     """
     Dépendance FastAPI à utiliser dans TOUS les routers (A et B) :
 
@@ -59,7 +59,6 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         def my_endpoint(current_user: TokenPayload = Depends(get_current_user)):
             ...
     """
-    token = credentials.credentials
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Token invalide ou expiré",
