@@ -158,7 +158,7 @@ CREATE INDEX idx_sinistre_groupe_id ON sinistre(groupe_id);
 CREATE TABLE piece_justificative (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sinistre_id     UUID NOT NULL REFERENCES sinistre(id),
-    s3_url          TEXT NOT NULL,
+    hdfs_url          TEXT NOT NULL,
     type_fichier    VARCHAR(50),
     texte_ocr       TEXT
 );

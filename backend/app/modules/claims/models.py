@@ -45,7 +45,7 @@ class PieceJustificative(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     sinistre_id = Column(UUID(as_uuid=True), ForeignKey("sinistre.id"), nullable=False)
-    s3_url = Column(Text, nullable=False)
+    hdfs_url = Column(Text, nullable=False)
     type_fichier = Column(String(50), nullable=True)
     texte_ocr = Column(Text, nullable=True)
 
