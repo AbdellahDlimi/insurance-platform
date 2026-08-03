@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Nouveau Sinistre Déclaré{% endblock %}
+{% block header_title %}🚨 Nouveau Sinistre{% endblock %}
+
+{% block content %}
+<p>Bonjour {{ pseudonyme }},</p>
+<p>Un nouveau sinistre a été déclaré et nécessite votre attention.</p>
+
+<div style="background: #f0f4ff; border-left: 4px solid #c8a96e; border-radius: 8px; padding: 16px; margin: 20px 0;">
+    <p><strong>Référence :</strong> {{ claim_id }}</p>
+    <p><strong>Montant :</strong> {{ amount }} €</p>
+</div>
+
+<p><strong>Description :</strong><br>
+<span style="background: #fafafa; padding: 12px; display: block; border-radius: 6px;">{{ description }}</span></p>
+
+<p style="text-align: center; color: #888; font-size: 13px; margin-top: 24px;">
+    📎 Le PDF de déclaration est joint à cet email, si applicable.
+</p>
+{% endblock %}

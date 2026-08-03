@@ -56,6 +56,18 @@ def get_claim(
 
 
 @router.get(
+    "/me",
+    response_model=list[ClaimResponse],
+    summary="Lister les sinistres de l'utilisateur courant",
+)
+def list_my_claims(
+    current_user: TokenPayload = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    return service.list_sinistres_utilisateur(session, UUID(current_user.user_id))
+
+
+@router.get(
     "/groupe/{groupe_id}",
     response_model=list[ClaimResponse],
     summary="Lister les sinistres d'un groupe",

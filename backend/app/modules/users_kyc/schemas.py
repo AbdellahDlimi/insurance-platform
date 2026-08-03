@@ -6,12 +6,18 @@ class UserCreate(BaseModel):
     """Ce que le client envoie pour s'inscrire."""
     email: EmailStr
     mot_de_passe: str  # en clair ici, sera hashé dans service.py avant stockage
+    pseudonyme: str
 
 
 class UserLogin(BaseModel):
     """Ce que le client envoie pour se connecter."""
     email: EmailStr
     mot_de_passe: str
+
+
+class UserUpdate(BaseModel):
+    """Champs modifiables par l'utilisateur lui-même."""
+    pseudonyme: str | None = None
 
 
 class UserOut(BaseModel):
@@ -26,6 +32,7 @@ class UserOut(BaseModel):
     email: EmailStr
     role: str
     statut_compte: str
+    onboarding_complete: bool
     created_at: datetime
 
 
@@ -53,3 +60,21 @@ class KYCStatusOut(BaseModel):
     fournisseur_api: str | None = None
     verifie_le: datetime | None = None
 
+
+class OnboardingSubmit(BaseModel):
+    tranche_age: str       # enum validé côté frontend
+    situation_pro: str
+    interets_assurance: list[str]
+    budget_max_mensuel: float
+    niveau_risque: str
+    region: str | None = None
+
+class OnboardingOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    tranche_age: str
+    situation_pro: str
+    interets_assurance: list[str]
+    budget_max_mensuel: float
+    niveau_risque: str
+    region: str | None
+    onboarding_complete: bool = True

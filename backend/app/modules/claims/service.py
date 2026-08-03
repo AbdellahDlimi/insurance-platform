@@ -51,6 +51,21 @@ def list_sinistres_groupe(session: Session, groupe_id: UUID) -> list[Sinistre]:
     return repository.list_sinistres_by_groupe(session, groupe_id)
 
 
+def list_sinistres_utilisateur(session: Session, utilisateur_id: UUID) -> list[Sinistre]:
+    """Liste tous les sinistres d'un utilisateur (via ses adhésions)."""
+    # On importe localement pour éviter les imports circulaires
+    from app.modules.groups.repository import get_adhesions_by_user
+    
+    adhesions = get_adhesions_by_user(session, utilisateur_id)
+    sinistres = []
+    for adhesion in adhesions:
+        sinistres.extend(repository.list_sinistres_by_adhesion(session, adhesion.id))
+    
+    # Trier par date de déclaration décroissante
+    sinistres.sort(key=lambda s: s.date_declaration, reverse=True)
+    return sinistres
+
+
 def valider_sinistre(
     session: Session,
     sinistre: Sinistre,

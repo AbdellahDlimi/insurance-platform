@@ -9,6 +9,18 @@ from sqlalchemy.orm import Session
 
 from app.modules.notifications.models import Notification
 
+def create_notification(session: Session, utilisateur_id: UUID, n_type: str, contenu: str) -> Notification:
+    """Crée et persiste une notification en base."""
+    notif = Notification(
+        utilisateur_id=utilisateur_id,
+        type=n_type,
+        contenu=contenu,
+    )
+    session.add(notif)
+    session.commit()
+    session.refresh(notif)
+    return notif
+
 
 def list_notifications_by_user(
     session: Session, utilisateur_id: UUID, non_lues_only: bool = False
