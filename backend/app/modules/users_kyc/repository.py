@@ -77,3 +77,56 @@ def update_kyc_status(
         db.commit()
         db.refresh(coffre)
     return coffre
+
+
+def create_profil_onboarding(
+    db: Session, user_id: uuid.UUID, data: dict
+) -> "ProfilOnboarding":
+    from app.modules.users_kyc.models import ProfilOnboarding
+    # Delete existing if any
+    db.query(ProfilOnboarding).filter(ProfilOnboarding.utilisateur_id == user_id).delete()
+    
+    profil = ProfilOnboarding(
+        utilisateur_id=user_id,
+        tranche_age=data["tranche_age"],
+        situation_pro=data["situation_pro"],
+        interets_assurance=data["interets_assurance"],
+        budget_max_mensuel=data["budget_max_mensuel"],
+        niveau_risque=data["niveau_risque"],
+        region=data.get("region")
+    )
+    db.add(profil)
+    db.commit()
+    db.refresh(profil)
+    return profil
+
+def get_profil_onboarding(db: Session, user_id: uuid.UUID) -> "ProfilOnboarding | None":
+    from app.modules.users_kyc.models import ProfilOnboarding
+    return db.query(ProfilOnboarding).filter(ProfilOnboarding.utilisateur_id == user_id).first()
+
+def update_user_onboarding_status(db: Session, user_id: uuid.UUID, complete: bool = True):
+    user = get_user_by_id(db, user_id)
+    if user:
+        user.onboarding_complete = complete
+        db.commit()
+        db.refresh(user)
+    return user
+
+
+def update_user_profile(db: Session, user_id: uuid.UUID, data: dict) -> Utilisateur:
+    """Met à jour les champs modifiables du profil utilisateur."""
+    user = get_user_by_id(db, user_id)
+    if not user:
+        return None
+    if data.get('pseudonyme') and data['pseudonyme'] != user.pseudonyme:
+        # Vérifier l'unicité du pseudonyme
+        existing = db.query(Utilisateur).filter(
+            Utilisateur.pseudonyme == data['pseudonyme'],
+            Utilisateur.id != user_id,
+        ).first()
+        if existing:
+            return 'taken'  # signal d'erreur
+        user.pseudonyme = data['pseudonyme']
+    db.commit()
+    db.refresh(user)
+    return user

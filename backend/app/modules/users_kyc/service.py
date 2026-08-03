@@ -10,7 +10,7 @@ import uuid
 import time
 from datetime import datetime, timezone
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, BackgroundTasks
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -21,20 +21,28 @@ from app.modules.users_kyc import repository
 from app.modules.users_kyc.models import Utilisateur, CoffreKYC
 from app.modules.users_kyc.schemas import UserCreate, UserLogin, TokenResponse, KYCSubmit, KYCStatusOut
 from app.modules.users_kyc.events import produce_kyc_verified
+from app.modules.notifications.service import NotificationService
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def _generer_pseudonyme() -> str:
+def _generer_pseudonyme(base_name: str) -> str:
     """
-    Génère un pseudonyme aléatoire non réversible — c'est ce pseudonyme,
-    pas le vrai nom, qui est visible par les autres membres du groupe.
+    Génère un pseudonyme en ajoutant un suffixe aléatoire pour éviter
+    les doublons tout en gardant le nom choisi par l'utilisateur.
     """
-    suffixe = "".join(secrets.choice(string.digits) for _ in range(6))
-    return f"membre_{suffixe}"
+    suffixe = "".join(secrets.choice(string.digits) for _ in range(4))
+    # Nettoyer les espaces ou caractères bizarres du nom de base si nécessaire
+    clean_name = base_name.strip().replace(" ", "")
+    return f"{clean_name}#{suffixe}"
 
 
-def register_user(db: Session, data: UserCreate) -> Utilisateur:
+def register_user(
+    db: Session, 
+    data: UserCreate, 
+    notification_service: NotificationService,
+    background_tasks: BackgroundTasks
+) -> Utilisateur:
     if repository.get_user_by_email(db, data.email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -42,11 +50,21 @@ def register_user(db: Session, data: UserCreate) -> Utilisateur:
         )
 
     mot_de_passe_hash = pwd_context.hash(data.mot_de_passe)
-    pseudonyme = _generer_pseudonyme()
+    pseudonyme = _generer_pseudonyme(data.pseudonyme)
 
-    return repository.create_user(
+    user = repository.create_user(
         db, email=data.email, mot_de_passe_hash=mot_de_passe_hash, pseudonyme=pseudonyme
     )
+    
+    notification_service.notify_welcome(
+        session=db,
+        user_id=user.id,
+        email=user.email,
+        pseudonyme=user.pseudonyme,
+        background_tasks=background_tasks
+    )
+    
+    return user
 
 
 def login_user(db: Session, data: UserLogin) -> TokenResponse:
@@ -207,3 +225,18 @@ def process_anonymity_lift_approved(db: Session, payload: dict) -> None:
     )
     db.commit()
     print(f"[KYC-KMS] Anonymity lifted for user {utilisateur_cible_id}. Nom complet en mémoire: {donnees_claires.get('nom_complet')}")
+
+def submit_onboarding(db: Session, user_id: uuid.UUID, data: dict):
+    """Soumet le profil onboarding et marque l'utilisateur comme onboardé."""
+    profil = repository.create_profil_onboarding(db, user_id, data)
+    repository.update_user_onboarding_status(db, user_id, complete=True)
+    return profil
+
+def get_onboarding_status(db: Session, user_id: uuid.UUID):
+    profil = repository.get_profil_onboarding(db, user_id)
+    if not profil:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Le profil d'onboarding n'a pas encore été complété."
+        )
+    return profil

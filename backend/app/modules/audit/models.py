@@ -44,6 +44,6 @@ class DemandeLeveeAnonymat(Base):
     justification_legale = Column(Text, nullable=False)
     statut = Column(String(50), nullable=False, default="en_attente")
     valide_par_agent_id = Column(
-        UUID(as_uuid=True), ForeignKey("equipe_conformite.id"), nullable=True
+        UUID(as_uuid=True), ForeignKey("utilisateur.id"), nullable=True
     )
     date_execution = Column(DateTime(timezone=True), nullable=True)

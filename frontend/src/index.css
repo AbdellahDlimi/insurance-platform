@@ -1,0 +1,690 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────
+   DESIGN TOKENS
+   Editorial Brutalist — Ink & Parchment Gold
+   ───────────────────────────────────────────── */
+:root {
+  /* Core palette */
+  --ink:         #0C0C0C;
+  --ink-90:      #161616;
+  --ink-80:      #1E1E1E;
+  --ink-60:      #2C2C2C;
+  --gold:        #C8A96E;
+  --gold-dim:    #A08048;
+  --gold-glow:   rgba(200, 169, 110, 0.15);
+  --gold-line:   rgba(200, 169, 110, 0.25);
+  --slate:       #2A3550;
+  --slate-light: #3A4A6A;
+  --paper:       #F0EDE6;
+  --paper-dim:   rgba(240, 237, 230, 0.65);
+  --paper-ghost: rgba(240, 237, 230, 0.12);
+  --paper-faint: rgba(240, 237, 230, 0.05);
+
+  /* Semantic */
+  --success:  #5A9E7C;
+  --warning:  #C8864E;
+  --danger:   #C85A5A;
+  --info:     #5A82C8;
+
+  /* Typography */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body:    'DM Sans', system-ui, sans-serif;
+
+  /* Spacing rhythm */
+  --space-xs:  0.25rem;
+  --space-sm:  0.5rem;
+  --space-md:  1rem;
+  --space-lg:  1.5rem;
+  --space-xl:  2.5rem;
+  --space-2xl: 4rem;
+  --space-3xl: 6rem;
+
+  /* Border */
+  --border-thin: 1px solid rgba(240, 237, 230, 0.08);
+  --border-gold: 1px solid var(--gold-line);
+}
+
+/* ─────────────────────────────────────────────
+   RESET & BASE
+   ───────────────────────────────────────────── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--ink);
+  color: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Grain texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.025;
+  mix-blend-mode: overlay;
+}
+
+::selection {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+/* ─────────────────────────────────────────────
+   TYPOGRAPHY SYSTEM
+   ───────────────────────────────────────────── */
+.font-display   { font-family: var(--font-display); }
+.font-body      { font-family: var(--font-body); }
+
+/* Display scale — Fraunces optical sizing */
+.text-display-xl  {
+  font-family: var(--font-display);
+  font-size: clamp(3.5rem, 9vw, 8rem);
+  font-weight: 700;
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  font-variation-settings: "opsz" 144;
+}
+
+.text-display-lg  {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  font-variation-settings: "opsz" 72;
+}
+
+.text-display-md  {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 4vw, 3rem);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-variation-settings: "opsz" 48;
+}
+
+.text-display-sm  {
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 2.5vw, 1.875rem);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  font-variation-settings: "opsz" 24;
+}
+
+.text-label {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.text-caption {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 300;
+  color: var(--paper-dim);
+  line-height: 1.6;
+}
+
+/* Italic display accent */
+.text-italic { font-style: italic; }
+
+/* Gold text */
+.text-gold { color: var(--gold); }
+.text-paper { color: var(--paper); }
+.text-paper-dim { color: var(--paper-dim); }
+
+/* ─────────────────────────────────────────────
+   LAYOUT PRIMITIVES
+   ───────────────────────────────────────────── */
+.container-editorial {
+  max-width: 1400px;
+  margin-inline: auto;
+  padding-inline: clamp(1.5rem, 5vw, 5rem);
+}
+
+/* Asymmetric rule — solid vertical line (editorial) */
+.rule-vertical {
+  width: 1px;
+  background: var(--gold-line);
+  align-self: stretch;
+}
+
+.rule-horizontal {
+  height: 1px;
+  background: var(--gold-line);
+  width: 100%;
+}
+
+/* ─────────────────────────────────────────────
+   SURFACE COMPONENTS
+   ───────────────────────────────────────────── */
+.surface {
+  background: var(--ink-90);
+  border: var(--border-thin);
+  border-radius: 2px;
+}
+
+.surface-gold {
+  background: var(--ink-90);
+  border: var(--border-gold);
+  border-radius: 2px;
+}
+
+.surface-inset {
+  background: var(--ink-80);
+  border: var(--border-thin);
+  border-radius: 2px;
+}
+
+/* ─────────────────────────────────────────────
+   BUTTONS
+   ───────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  padding: 0.75rem 1.75rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+  border-radius: 2px;
+}
+
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.btn:active::after { opacity: 0.05; }
+
+.btn-primary {
+  background: var(--gold);
+  color: var(--ink);
+}
+.btn-primary:hover {
+  background: var(--paper);
+  box-shadow: 0 0 40px var(--gold-glow);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--paper);
+  border: 1px solid rgba(240,237,230,0.2);
+}
+.btn-secondary:hover {
+  border-color: var(--gold-line);
+  color: var(--gold);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--paper-dim);
+  border: none;
+}
+.btn-ghost:hover { color: var(--paper); }
+
+.btn-danger {
+  background: rgba(200, 90, 90, 0.1);
+  color: #e88;
+  border: 1px solid rgba(200,90,90,0.2);
+}
+.btn-danger:hover {
+  background: rgba(200, 90, 90, 0.2);
+}
+
+/* ─────────────────────────────────────────────
+   FORM ELEMENTS
+   ───────────────────────────────────────────── */
+.input-field {
+  width: 100%;
+  background: var(--ink-80);
+  border: 1px solid rgba(240,237,230,0.1);
+  border-radius: 2px;
+  padding: 0.875rem 1rem;
+  color: var(--paper);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+
+.input-field::placeholder { color: rgba(240,237,230,0.25); }
+
+.input-field:focus {
+  border-color: var(--gold-dim);
+  box-shadow: 0 0 0 3px rgba(200,169,110,0.08);
+}
+
+.input-label {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+select.input-field option {
+  background: var(--ink-80);
+  color: var(--paper);
+}
+
+/* ─────────────────────────────────────────────
+   BADGE / TAG
+   ───────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.625rem;
+  border-radius: 1px;
+}
+
+.badge-success { background: rgba(90,158,124,0.12); color: #7FC9A0; border: 1px solid rgba(90,158,124,0.25); }
+.badge-warning { background: rgba(200,134,78,0.12); color: #E0A870; border: 1px solid rgba(200,134,78,0.25); }
+.badge-danger  { background: rgba(200,90,90,0.12);  color: #E08888; border: 1px solid rgba(200,90,90,0.25); }
+.badge-info    { background: rgba(90,130,200,0.12); color: #88AADF; border: 1px solid rgba(90,130,200,0.25); }
+.badge-gold    { background: rgba(200,169,110,0.12); color: var(--gold); border: 1px solid var(--gold-line); }
+
+/* ─────────────────────────────────────────────
+   NAVIGATION
+   ───────────────────────────────────────────── */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: 4.5rem;
+  display: flex;
+  align-items: center;
+  transition: background 0.3s, border-color 0.3s;
+}
+
+.navbar.scrolled {
+  background: rgba(12,12,12,0.92);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(240,237,230,0.06);
+}
+
+/* ─────────────────────────────────────────────
+   ANIMATIONS
+   ───────────────────────────────────────────── */
+
+/* Page-level clip reveal (horizontal) */
+@keyframes clipReveal {
+  from { clip-path: inset(0 100% 0 0); opacity: 0; }
+  to   { clip-path: inset(0 0% 0 0);   opacity: 1; }
+}
+
+/* Line-by-line text entrance */
+@keyframes slideUp {
+  from { transform: translateY(2rem); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Large number counter pulse */
+@keyframes goldPulse {
+  0%, 100% { text-shadow: 0 0 20px rgba(200,169,110,0); }
+  50%       { text-shadow: 0 0 40px rgba(200,169,110,0.3); }
+}
+
+/* Diagonal scan line for hero */
+@keyframes scanLine {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(100vh); }
+}
+
+/* Breathing border on active cards */
+@keyframes borderBreath {
+  0%, 100% { border-color: rgba(200,169,110,0.15); }
+  50%       { border-color: rgba(200,169,110,0.45); }
+}
+
+/* Utility classes */
+.animate-slide-up {
+  animation: slideUp 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease both;
+}
+
+.animate-clip-reveal {
+  animation: clipReveal 0.9s cubic-bezier(0.77, 0, 0.175, 1) both;
+}
+
+.animate-gold-pulse {
+  animation: goldPulse 3s ease-in-out infinite;
+}
+
+.animate-border-breath {
+  animation: borderBreath 3s ease-in-out infinite;
+}
+
+/* Stagger delays */
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+.delay-5 { animation-delay: 0.5s; }
+.delay-6 { animation-delay: 0.6s; }
+.delay-7 { animation-delay: 0.7s; }
+.delay-8 { animation-delay: 0.8s; }
+.delay-10 { animation-delay: 1s; }
+.delay-12 { animation-delay: 1.2s; }
+
+/* ─────────────────────────────────────────────
+   HERO DECORATIVE ELEMENTS
+   ───────────────────────────────────────────── */
+
+/* Scan line effect */
+.hero-scanline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold-line), transparent);
+  animation: scanLine 8s linear infinite;
+  pointer-events: none;
+}
+
+/* Corner brackets */
+.bracket-corner {
+  position: relative;
+}
+.bracket-corner::before,
+.bracket-corner::after {
+  content: '';
+  position: absolute;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-color: var(--gold-dim);
+  border-style: solid;
+}
+.bracket-corner::before {
+  top: 0; left: 0;
+  border-width: 1px 0 0 1px;
+}
+.bracket-corner::after {
+  bottom: 0; right: 0;
+  border-width: 0 1px 1px 0;
+}
+
+/* ─────────────────────────────────────────────
+   STAT / KPI CARDS — editorial number display
+   ───────────────────────────────────────────── */
+.stat-number {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  color: var(--gold);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variation-settings: "opsz" 72;
+}
+
+/* ─────────────────────────────────────────────
+   TABLE EDITORIAL STYLE
+   ───────────────────────────────────────────── */
+.table-editorial {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-body);
+}
+
+.table-editorial thead tr {
+  border-bottom: 1px solid var(--gold-line);
+}
+
+.table-editorial th {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+  padding: 0.875rem 1rem;
+  text-align: left;
+}
+
+.table-editorial td {
+  padding: 1rem;
+  font-size: 0.875rem;
+  color: var(--paper-dim);
+  border-bottom: 1px solid rgba(240,237,230,0.04);
+}
+
+.table-editorial tbody tr:hover td {
+  background: var(--paper-faint);
+  color: var(--paper);
+}
+
+/* ─────────────────────────────────────────────
+   LOADING STATES
+   ───────────────────────────────────────────── */
+.spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid rgba(200,169,110,0.2);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  from { background-position: -400px 0; }
+  to   { background-position: 400px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--ink-80) 25%,
+    var(--ink-60) 50%,
+    var(--ink-80) 75%
+  );
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: 2px;
+}
+
+/* ─────────────────────────────────────────────
+   STEP PROGRESS INDICATOR
+   ───────────────────────────────────────────── */
+.step-progress {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.step-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: rgba(240,237,230,0.15);
+  transition: all 0.3s;
+}
+
+.step-dot.active {
+  background: var(--gold);
+  box-shadow: 0 0 12px rgba(200,169,110,0.5);
+}
+
+.step-dot.done {
+  background: var(--gold-dim);
+}
+
+.step-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(240,237,230,0.08);
+  min-width: 2rem;
+  transition: background 0.3s;
+}
+
+.step-line.done { background: var(--gold-dim); }
+
+/* ─────────────────────────────────────────────
+   SCROLLBAR
+   ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--ink); }
+::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+/* ─────────────────────────────────────────────
+   RECHARTS OVERRIDES
+   ───────────────────────────────────────────── */
+.recharts-wrapper .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--ink-90) !important;
+  border: var(--border-gold) !important;
+  border-radius: 2px !important;
+}
+
+/* ─────────────────────────────────────────────
+   RANGE SLIDER
+   ───────────────────────────────────────────── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  background: rgba(240,237,230,0.1);
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gold);
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(200,169,110,0.4);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: var(--gold);
+  cursor: pointer;
+}
+
+/* ─────────────────────────────────────────────
+   DRAG & DROP ZONE
+   ───────────────────────────────────────────── */
+.drop-zone {
+  border: 1px dashed rgba(200,169,110,0.2);
+  background: var(--ink-90);
+  border-radius: 2px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.drop-zone:hover {
+  border-color: var(--gold-dim);
+  background: rgba(200,169,110,0.04);
+}
+
+/* ─────────────────────────────────────────────
+   NOTIFICATION TOAST
+   ───────────────────────────────────────────── */
+.toast-alert {
+  border-left: 3px solid var(--warning);
+  background: rgba(200,134,78,0.05);
+  border-radius: 0 2px 2px 0;
+  padding: 1rem 1.25rem;
+}
+
+.toast-error {
+  border-left: 3px solid var(--danger);
+  background: rgba(200,90,90,0.05);
+  border-radius: 0 2px 2px 0;
+  padding: 1rem 1.25rem;
+}
+
+.toast-success {
+  border-left: 3px solid var(--success);
+  background: rgba(90,158,124,0.05);
+  border-radius: 0 2px 2px 0;
+  padding: 1rem 1.25rem;
+}
+
+/* ─────────────────────────────────────────────
+   MISC UTILITIES
+   ───────────────────────────────────────────── */
+.blur-gold {
+  filter: blur(80px);
+  background: radial-gradient(circle, rgba(200,169,110,0.12), transparent);
+  border-radius: 50%;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.truncate-1 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 20ch;
+}
