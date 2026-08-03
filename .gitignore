@@ -12,3 +12,10 @@ node_modules/
 
 # Variables d'environnement
 .env
+
+# Build artifacts (ne pas pousser dans git)
+frontend/dist/
+frontend/images/
+
+# Fichiers de test temporaires
+backend/test_resend.py
