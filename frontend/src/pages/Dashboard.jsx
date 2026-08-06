@@ -71,9 +71,6 @@ export const DashboardPage = ({ user, navigate }) => {
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <Btn variant="primary" onClick={() => navigate('/claims/new')}>
-              <AlertTriangle size={14} /> Déclarer un sinistre
-            </Btn>
             <Btn variant="secondary" onClick={() => navigate('/groups')}>
               Rechercher un groupe
             </Btn>
@@ -91,6 +88,25 @@ export const DashboardPage = ({ user, navigate }) => {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Clock size={18} color="var(--warning)" />
+              <div>
+                <p style={{ fontWeight: 600, color: '#E0A870', fontSize: '0.9375rem' }}>Vérification d'identité en cours</p>
+                <p style={{ color: 'var(--paper-dim)', fontSize: '0.8125rem', marginTop: '0.125rem' }}>Notre équipe de conformité étudie vos documents.</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {user.kyc_status === 'none' && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem',
+              padding: '1.25rem 1.5rem', marginBottom: '2rem',
+              background: 'rgba(200,134,78,0.05)', borderLeft: '3px solid var(--warning)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <AlertCircle size={18} color="var(--warning)" />
               <div>
                 <p style={{ fontWeight: 600, color: '#E0A870', fontSize: '0.9375rem' }}>Vérification d'identité requise</p>
@@ -98,6 +114,26 @@ export const DashboardPage = ({ user, navigate }) => {
               </div>
             </div>
             <Btn variant="secondary" onClick={() => navigate('/kyc')}>Vérifier maintenant</Btn>
+          </motion.div>
+        )}
+
+        {user.kyc_status === 'failed' && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem',
+              padding: '1.25rem 1.5rem', marginBottom: '2rem',
+              background: 'rgba(200,90,90,0.05)', borderLeft: '3px solid var(--danger)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <AlertTriangle size={18} color="var(--danger)" />
+              <div>
+                <p style={{ fontWeight: 600, color: '#E08888', fontSize: '0.9375rem' }}>Vérification d'identité rejetée</p>
+                <p style={{ color: 'var(--paper-dim)', fontSize: '0.8125rem', marginTop: '0.125rem' }}>Vos documents n'ont pas été validés. Veuillez resoumettre une demande.</p>
+              </div>
+            </div>
+            <Btn variant="secondary" onClick={() => navigate('/kyc')}>Resoumettre</Btn>
           </motion.div>
         )}
 
@@ -405,12 +441,12 @@ export const DashboardPage = ({ user, navigate }) => {
         @media (min-width: 1024px) {
           .dashboard-grid {
             grid-template-columns: 1fr 2fr !important;
-            grid-template-rows: auto auto auto;
+            grid-auto-rows: min-content;
           }
           .dashboard-grid > :nth-child(1) { grid-row: 1; grid-column: 1; }
           .dashboard-grid > :nth-child(2) { grid-row: 1 / 3; grid-column: 2; }
           .dashboard-grid > :nth-child(3) { grid-row: 2; grid-column: 1; }
-          .dashboard-grid > :nth-child(4) { grid-row: 3; grid-column: 1 / 3; }
+          .dashboard-grid > :nth-child(4) { grid-column: 1 / 3; }
         }
       `}</style>
     </motion.div>

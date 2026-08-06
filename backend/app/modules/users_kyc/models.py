@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, LargeBinary, ForeignKey, Boolean, Numeric
+from sqlalchemy import Column, String, DateTime, LargeBinary, ForeignKey, Boolean, Numeric, Integer
 
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import relationship
@@ -33,6 +33,8 @@ class CoffreKYC(Base):
     fournisseur_api = Column(String(50), nullable=True)
     verifie_par_agent_id = Column(UUID(as_uuid=True), nullable=True)  # FK to equipe_conformite
     verifie_le = Column(DateTime(timezone=True), nullable=True)
+    document_url = Column(String(500), nullable=True)
+    commentaire_review = Column(String(1000), nullable=True)
 
 
 class ProfilOnboarding(Base):
@@ -46,6 +48,10 @@ class ProfilOnboarding(Base):
     budget_max_mensuel = Column(Numeric(8, 2), nullable=False)
     niveau_risque = Column(String(20), nullable=False)
     region = Column(String(100), nullable=True)
+    situation_familiale = Column(String(30), nullable=True)        # celibataire / marie / divorce / veuf
+    nombre_personnes_a_charge = Column(Integer, nullable=True)     # 0, 1, 2, 3+
+    couverture_existante = Column(ARRAY(String), nullable=True)    # ["sante", "auto", ...]
+    priorite_assurance = Column(String(30), nullable=True)         # prix_bas / couverture_max / rapidite
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     utilisateur = relationship("Utilisateur", back_populates="profil_onboarding")

@@ -20,6 +20,7 @@ from app.modules.cagnotte.router import router as cagnotte_router
 from app.modules.groups.router import router as groups_router
 from app.modules.users_kyc.router import router as users_kyc_router
 from app.ai.matchmaker.router import router as matchmaker_router
+from app.modules.payments.router import router as payments_router
 from app.core.database import Base, engine
 
 # S'assurer que les tables sont créées
@@ -43,6 +44,7 @@ app.include_router(cagnotte_router)
 app.include_router(groups_router)
 app.include_router(users_kyc_router)
 app.include_router(matchmaker_router)
+app.include_router(payments_router)
 
 
 @app.get("/health")

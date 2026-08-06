@@ -9,6 +9,7 @@ from app.modules.groups.schemas import GroupCreate, PendingRequestOut, MemberOut
 from app.modules.groups.events import produce_adhesion_requested, produce_adhesion_validated
 from app.modules.users_kyc.service import get_kyc_status
 from app.modules.users_kyc.models import Utilisateur
+from app.modules.cagnotte.models import Cagnotte, Cotisation
 
 
 def create_group(db: Session, admin_id: uuid.UUID, data: GroupCreate) -> Groupe:
@@ -236,6 +237,18 @@ def get_group_members_enriched(db: Session, group_id: uuid.UUID, user_id: uuid.U
             )
             
     rows = repository.get_group_members_enriched(db, group_id, group.admin_id)
+    
+    # Check paid status for the current period
+    cagnotte = db.query(Cagnotte).filter(Cagnotte.groupe_id == group_id).first()
+    paid_adhesions = set()
+    if cagnotte:
+        cotisations = db.query(Cotisation).filter(
+            Cotisation.cagnotte_id == cagnotte.id,
+            Cotisation.periode == cagnotte.periode_courante,
+            Cotisation.statut_paiement == "paye"
+        ).all()
+        paid_adhesions = {c.adhesion_id for c in cotisations}
+
     return [
         MemberOut(
             utilisateur_id=adhesion.utilisateur_id,
@@ -245,8 +258,14 @@ def get_group_members_enriched(db: Session, group_id: uuid.UUID, user_id: uuid.U
             nb_sinistres_periode=adhesion.nb_sinistres_periode,
             date_adhesion=adhesion.date_adhesion,
             is_admin=(utilisateur.id == group.admin_id),
+            has_paid_current_month=(adhesion.id in paid_adhesions),
+            tranche_age=profil.tranche_age if profil else None,
+            situation_pro=profil.situation_pro if profil else None,
+            region=profil.region if profil else None,
+            niveau_risque=profil.niveau_risque if profil else None,
+            interets_assurance=profil.interets_assurance if profil else None,
         )
-        for adhesion, utilisateur in rows
+        for adhesion, utilisateur, profil in rows
     ]
 
 

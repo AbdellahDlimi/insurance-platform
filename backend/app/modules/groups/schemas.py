@@ -75,6 +75,12 @@ class MemberOut(BaseModel):
     nb_sinistres_periode: int
     date_adhesion: datetime
     is_admin: bool = False
+    has_paid_current_month: bool = False
+    tranche_age: Optional[str] = None
+    situation_pro: Optional[str] = None
+    region: Optional[str] = None
+    niveau_risque: Optional[str] = None
+    interets_assurance: Optional[list[str]] = None
 
 
 class AdhesionValidate(BaseModel):

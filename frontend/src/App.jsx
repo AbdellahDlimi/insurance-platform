@@ -12,12 +12,15 @@ import { DashboardPage }     from './pages/Dashboard.jsx';
 import { KYCPage }           from './pages/KYC.jsx';
 import { GroupsExplorer }    from './pages/Groups.jsx';
 import { GroupDetails }      from './pages/GroupDetails.jsx';
+import { KYCAdmin }          from './pages/KYCAdmin.jsx';
+import { AdminDashboard }    from './pages/AdminDashboard.jsx';
 import { ClaimsPage, DeclareClaimPage } from './pages/Claims.jsx';
 import { OnboardingPage }    from './pages/Onboarding.jsx';
 import { HowItWorksPage }   from './pages/HowItWorks.jsx';
 import { FeaturesPage }     from './pages/Features.jsx';
 import { ProfilePage }      from './pages/Profile.jsx';
-
+import { PaymentSuccess }   from './pages/PaymentSuccess.jsx';
+import { PaymentCancel }    from './pages/PaymentCancel.jsx';
 /* ── Placeholder for future modules ── */
 const ComingSoon = ({ navigate }) => (
   <div style={{
@@ -71,14 +74,19 @@ export default function App() {
         ]);
         setUser({
           ...userData,
-          kyc_status:          kyc.statut_verification === 'verified' ? 'verified' : 'pending',
+          kyc_status:          kyc.statut_verification,
           onboarding_complete: onboarding.onboarding_complete,
         });
         // Charger le compteur de demandes en attente pour les admins
         if (userData.role === 'admin_groupe') {
           api.getAdminPendingRequests().then(reqs => setPendingCount(reqs.length)).catch(() => {});
         }
-        setCurrentPath(onboarding.onboarding_complete ? '/dashboard' : '/onboarding');
+        
+        if (userData.role === 'admin_plateforme') {
+          setCurrentPath('/admin/dashboard');
+        } else {
+          setCurrentPath(onboarding.onboarding_complete ? '/dashboard' : '/onboarding');
+        }
       })
       .catch(() => {
         localStorage.removeItem('access_token');
@@ -100,20 +108,23 @@ export default function App() {
 
   /* Route guard + rendering */
   const renderRoute = () => {
-    const PROTECTED = ['/dashboard', '/kyc', '/claims', '/claims/new', '/groups', '/onboarding', '/profile'];
+    const PROTECTED = ['/dashboard', '/kyc', '/claims', '/claims/new', '/groups', '/onboarding', '/profile', '/admin/dashboard', '/admin/kyc'];
+    
+    // Strip query params for route matching
+    const basePath = currentPath.split('?')[0];
 
-    if (PROTECTED.includes(currentPath) && !user) {
+    if (PROTECTED.includes(basePath) && !user) {
       return <AuthPage type="login" navigate={navigate} user={user} setUser={setUser} />;
     }
-    if (user && !user.onboarding_complete && currentPath !== '/onboarding') {
+    if (user && user.role !== 'admin_plateforme' && !user.onboarding_complete && basePath !== '/onboarding') {
       return <OnboardingPage navigate={navigate} user={user} setUser={setUser} />;
     }
-    if (currentPath.startsWith('/groups/')) {
-      const groupId = currentPath.split('/groups/')[1];
+    if (basePath.startsWith('/groups/')) {
+      const groupId = basePath.split('/groups/')[1];
       return <GroupDetails navigate={navigate} user={user} groupId={groupId} />;
     }
 
-    switch (currentPath) {
+    switch (basePath) {
       case '/':
         if (user) return user.onboarding_complete ? <DashboardPage user={user} navigate={navigate} /> : <OnboardingPage navigate={navigate} user={user} setUser={setUser} />;
         return <LandingPage navigate={navigate} />;
@@ -122,12 +133,16 @@ export default function App() {
       case '/onboarding':    return <OnboardingPage navigate={navigate} user={user} setUser={setUser} />;
       case '/dashboard':     return <DashboardPage  user={user} navigate={navigate} />;
       case '/kyc':           return <KYCPage navigate={navigate} />;
+      case '/admin/dashboard': return <AdminDashboard navigate={navigate} user={user} />;
+      case '/admin/kyc':     return <KYCAdmin navigate={navigate} user={user} />;
       case '/groups':        return <GroupsExplorer navigate={navigate} />;
       case '/claims':        return <ClaimsPage navigate={navigate} />;
       case '/claims/new':    return <DeclareClaimPage navigate={navigate} />;
       case '/profile':       return <ProfilePage user={user} navigate={navigate} setUser={setUser} />;
       case '/how-it-works':  return <HowItWorksPage navigate={navigate} />;
       case '/features':      return <FeaturesPage navigate={navigate} />;
+      case '/payment/success': return <PaymentSuccess navigate={navigate} />;
+      case '/payment/cancel':  return <PaymentCancel navigate={navigate} />;
       case '/notifications':
       case '/cotisations':
       case '/audit':         return <ComingSoon navigate={navigate} />;

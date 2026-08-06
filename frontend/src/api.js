@@ -41,7 +41,19 @@ export const api = {
     }
   },
   submitKyc: async (data) => {
-    const res = await axiosClient.post('/users_kyc/kyc/submit', data);
+    const res = await axiosClient.post('/users_kyc/kyc/submit', data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      }
+    });
+    return res.data;
+  },
+  getPendingKyc: async () => {
+    const res = await axiosClient.get('/users_kyc/kyc/pending');
+    return res.data;
+  },
+  reviewKyc: async (kycId, statut, commentaire) => {
+    const res = await axiosClient.post(`/users_kyc/kyc/${kycId}/review`, { statut, commentaire });
     return res.data;
   },
   getGroups: async () => {
@@ -147,6 +159,18 @@ export const api = {
   },
   getRecommendations: async () => {
     const res = await axiosClient.get('/ai/matchmaker/recommendations');
+    return res.data;
+  },
+  createCheckoutSession: async (cotisationId) => {
+    const res = await axiosClient.post(`/payments/create-checkout-session/${cotisationId}`);
+    return res.data;
+  },
+  getMyCotisations: async (userId) => {
+    const res = await axiosClient.get(`/members/${userId}/cotisation`);
+    return res.data;
+  },
+  appelCotisation: async (groupId, montant) => {
+    const res = await axiosClient.post(`/groups/${groupId}/appel-cotisation`, { montant });
     return res.data;
   },
 };

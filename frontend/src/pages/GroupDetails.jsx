@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield, ArrowLeft, Users, CheckCircle2, XCircle, Clock,
-  Wallet, TrendingUp, Star, UserPlus, Crown, AlertCircle, Check, X
+  Wallet, TrendingUp, Star, UserPlus, Crown, AlertCircle, Check, X, AlertTriangle
 } from 'lucide-react';
 import { api } from '../api.js';
 import {
@@ -22,74 +22,187 @@ const Stat = ({ label, value, accent }) => (
   </div>
 );
 
-/* ── member avatar row ── */
-const MemberRow = ({ member, index }) => (
-  <motion.div
-    initial={{ opacity: 0, x: -10 }}
-    animate={{ opacity: 1, x: 0 }}
-    transition={{ delay: index * 0.05 }}
-    style={{
-      display: 'flex', alignItems: 'center', gap: '0.875rem',
-      padding: '0.875rem 1.25rem',
-      background: index % 2 === 0 ? 'var(--ink-90)' : 'var(--ink-80)',
-      borderBottom: '1px solid rgba(240,237,230,0.04)',
-    }}
-  >
-    {/* Avatar */}
-    <div style={{
-      width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-      background: member.is_admin
-        ? 'linear-gradient(135deg, #c8a96e, #8b6914)'
-        : 'linear-gradient(135deg, var(--slate), var(--gold-dim))',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.9375rem', color: 'var(--paper)',
-      border: member.is_admin ? '1.5px solid var(--gold)' : '1px solid var(--gold-line)',
-      position: 'relative',
-    }}>
-      {member.pseudonyme.charAt(0).toUpperCase()}
-      {member.is_admin && (
-        <Crown size={10} color="var(--gold)" style={{ position: 'absolute', top: -4, right: -4 }} />
-      )}
-    </div>
-
-    {/* Info */}
-    <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <p style={{ fontWeight: member.is_admin ? 700 : 500, color: 'var(--paper)', fontSize: '0.9375rem', fontFamily: 'var(--font-display)' }}>
-          {member.pseudonyme}
-        </p>
-        {member.is_admin && <Badge variant="gold">Admin</Badge>}
+const MemberRow = ({ member, index, onClick }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.05 }}
+      onClick={onClick}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '0.875rem',
+        padding: '0.875rem 1.25rem',
+        background: index % 2 === 0 ? 'var(--ink-90)' : 'var(--ink-80)',
+        borderBottom: '1px solid rgba(240,237,230,0.04)',
+        cursor: 'pointer',
+      }}
+    >
+      {/* Avatar */}
+      <div style={{
+        width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+        background: member.is_admin
+          ? 'linear-gradient(135deg, #c8a96e, #8b6914)'
+          : 'linear-gradient(135deg, var(--slate), var(--gold-dim))',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.9375rem', color: 'var(--paper)',
+        border: member.is_admin ? '1.5px solid var(--gold)' : '1px solid var(--gold-line)',
+        position: 'relative',
+      }}>
+        {member.pseudonyme.charAt(0).toUpperCase()}
+        {member.is_admin && (
+          <Crown size={10} color="var(--gold)" style={{ position: 'absolute', top: -4, right: -4 }} />
+        )}
       </div>
-      <p style={{ fontSize: '0.75rem', color: 'var(--paper-dim)', marginTop: '0.1rem' }}>
-        Membre depuis {new Date(member.date_adhesion).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' })}
-      </p>
-    </div>
 
-    {/* Stats */}
-    <div style={{ display: 'flex', gap: '1.5rem', flexShrink: 0 }}>
-      <div style={{ textAlign: 'right' }}>
-        <p style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(240,237,230,0.3)', marginBottom: '0.125rem' }}>Coefficient</p>
-        <p style={{
-          fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 600,
-          color: member.coefficient_actuel > 1 ? 'var(--danger)' : member.coefficient_actuel < 1 ? 'var(--success)' : 'var(--paper)',
+      {/* Info */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <p style={{ fontWeight: member.is_admin ? 700 : 500, color: 'var(--paper)', fontSize: '0.9375rem', fontFamily: 'var(--font-display)' }}>
+            {member.pseudonyme}
+          </p>
+          {member.is_admin && <Badge variant="gold">Admin</Badge>}
+        </div>
+        <p style={{ fontSize: '0.75rem', color: 'var(--paper-dim)', marginTop: '0.1rem' }}>
+          Membre depuis {new Date(member.date_adhesion).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' })}
+        </p>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display: 'flex', gap: '1.5rem', flexShrink: 0 }}>
+        <div style={{ textAlign: 'right' }}>
+          <p style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(240,237,230,0.3)', marginBottom: '0.125rem' }}>Cotisation (Mois)</p>
+          <p style={{
+            fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 600,
+            color: member.has_paid_current_month ? 'var(--success)' : 'var(--warning)',
+          }}>
+            {member.has_paid_current_month ? 'Payé' : 'En attente'}
+          </p>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <p style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(240,237,230,0.3)', marginBottom: '0.125rem' }}>Coefficient</p>
+          <p style={{
+            fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 600,
+            color: member.coefficient_actuel > 1 ? 'var(--danger)' : member.coefficient_actuel < 1 ? 'var(--success)' : 'var(--paper)',
+          }}>
+            ×{Number(member.coefficient_actuel).toFixed(2)}
+          </p>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <p style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(240,237,230,0.3)', marginBottom: '0.125rem' }}>Sinistres</p>
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 600, color: member.nb_sinistres_periode > 0 ? 'var(--warning)' : 'var(--paper-dim)' }}>
+            {member.nb_sinistres_periode}
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+/* ── Member Profile Modal ── */
+const MemberProfileModal = ({ member, onClose }) => {
+  if (!member) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(12,12,12,0.85)', backdropFilter: 'blur(8px)',
+        zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '1rem'
+      }}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: 'var(--ink)', border: '1px solid var(--gold-line)',
+          borderRadius: '8px', width: '100%', maxWidth: '450px',
+          overflow: 'hidden', display: 'flex', flexDirection: 'column',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+        }}
+      >
+        {/* Cover */}
+        <div style={{
+          height: '100px', background: 'linear-gradient(135deg, rgba(200,169,110,0.1), rgba(200,169,110,0.02))',
+          position: 'relative', borderBottom: '1px solid var(--gold-line)'
         }}>
-          ×{Number(member.coefficient_actuel).toFixed(2)}
-        </p>
-      </div>
-      <div style={{ textAlign: 'right' }}>
-        <p style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(240,237,230,0.3)', marginBottom: '0.125rem' }}>Sinistres</p>
-        <p style={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 600, color: member.nb_sinistres_periode > 0 ? 'var(--warning)' : 'var(--paper-dim)' }}>
-          {member.nb_sinistres_periode}
-        </p>
-      </div>
-    </div>
-  </motion.div>
-);
+           <button onClick={onClose} style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(4px)', border: 'none', color: 'var(--paper)', cursor: 'pointer', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+             <X size={18}/>
+           </button>
+        </div>
+        
+        <div style={{ padding: '0 2rem 2rem', marginTop: '-40px' }}>
+          {/* Avatar */}
+          <div style={{
+            width: 80, height: 80, borderRadius: '50%',
+            background: member.is_admin ? 'linear-gradient(135deg, #c8a96e, #8b6914)' : 'linear-gradient(135deg, var(--slate), var(--gold-dim))',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '2rem', color: 'var(--paper)',
+            border: `4px solid var(--ink)`, position: 'relative',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+          }}>
+            {member.pseudonyme.charAt(0).toUpperCase()}
+            {member.is_admin && <Crown size={16} color="var(--gold)" style={{ position: 'absolute', top: -2, right: -2 }} />}
+          </div>
+          
+          <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 600, color: 'var(--paper)', lineHeight: 1 }}>
+              {member.pseudonyme}
+            </h2>
+            {member.is_admin && <Badge variant="gold">Admin</Badge>}
+          </div>
+          <p style={{ color: 'var(--paper-dim)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+            Membre depuis {new Date(member.date_adhesion).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' })}
+          </p>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid rgba(240,237,230,0.05)' }}>
+            <Stat label="Cotisation" value={member.has_paid_current_month ? 'Payé' : 'En attente'} accent={member.has_paid_current_month ? 'var(--success)' : 'var(--warning)'} />
+            <Stat label="Coefficient" value={`×${Number(member.coefficient_actuel).toFixed(2)}`} />
+            <Stat label="Sinistres" value={member.nb_sinistres_periode} accent={member.nb_sinistres_periode > 0 ? 'var(--warning)' : undefined} />
+          </div>
+          
+          <div style={{ marginTop: '1.5rem' }}>
+            <h3 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(240,237,230,0.4)', marginBottom: '1.25rem' }}>Profil Onboarding</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+              <div>
+                <p style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(240,237,230,0.3)', marginBottom: '0.25rem' }}>Âge</p>
+                <p style={{ fontSize: '0.9375rem', color: 'var(--paper)', fontWeight: 500 }}>{member.tranche_age || '—'}</p>
+              </div>
+              <div>
+                <p style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(240,237,230,0.3)', marginBottom: '0.25rem' }}>Profession</p>
+                <p style={{ fontSize: '0.9375rem', color: 'var(--paper)', fontWeight: 500, textTransform: 'capitalize' }}>{member.situation_pro?.replace('_', ' ') || '—'}</p>
+              </div>
+              <div>
+                <p style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(240,237,230,0.3)', marginBottom: '0.25rem' }}>Région</p>
+                <p style={{ fontSize: '0.9375rem', color: 'var(--paper)', fontWeight: 500 }}>{member.region || '—'}</p>
+              </div>
+              <div>
+                <p style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(240,237,230,0.3)', marginBottom: '0.25rem' }}>Niveau de risque</p>
+                <p style={{ fontSize: '0.9375rem', color: 'var(--paper)', fontWeight: 500, textTransform: 'capitalize' }}>
+                  {member.niveau_risque === 'prudent' ? '🟢 Prudent' : 
+                   member.niveau_risque === 'modere' ? '🟡 Modéré' : 
+                   member.niveau_risque === 'audacieux' ? '🔴 Audacieux' : member.niveau_risque || '—'}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 export const GroupDetails = ({ user, navigate, groupId }) => {
   // groupId est passé directement depuis App.jsx
 
   const [group, setGroup]     = useState(null);
+  const [cagnotte, setCagnotte] = useState(null);
   const [members, setMembers] = useState([]);
   const [requests, setRequests] = useState([]);
   const [myRequest, setMyRequest] = useState(null); // 'none' | 'en_attente' | 'membre'
@@ -97,6 +210,11 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
   const [joining, setJoining]   = useState(false);
   const [processing, setProcessing] = useState(null);
   const [toast, setToast] = useState(null);
+  const [myCotisations, setMyCotisations] = useState([]);
+  const [payingId, setPayingId] = useState(null);
+  const [appelLoading, setAppelLoading] = useState(false);
+  const [montantAppel, setMontantAppel] = useState(50);
+  const [selectedMember, setSelectedMember] = useState(null);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -105,12 +223,19 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
 
   const load = useCallback(async () => {
     try {
-      const [groupData, membersData] = await Promise.all([
+      const [groupData, membersData, cagnotteData, cotisationsData] = await Promise.all([
         api.getGroup(groupId),
         api.getGroupMembersEnriched(groupId).catch(() => []),
+        api.getCagnotte(groupId).catch(() => null),
+        (user?.id ? api.getMyCotisations(user.id).catch(() => []) : Promise.resolve([]))
       ]);
       setGroup(groupData);
       setMembers(membersData);
+      
+      if (cagnotteData) {
+        setCagnotte(cagnotteData);
+        setMyCotisations(cotisationsData.filter(c => c.cagnotte_id === cagnotteData.id));
+      }
 
       // Check if user is already member
       const isMember = membersData.some(m => m.utilisateur_id === user?.id);
@@ -167,6 +292,32 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
     }
   };
 
+  const handlePayment = async (cotisationId) => {
+    setPayingId(cotisationId);
+    try {
+      const data = await api.createCheckoutSession(cotisationId);
+      window.location.href = data.url;
+    } catch (err) {
+      showToast('Erreur lors de la redirection vers Stripe.', 'error');
+    } finally {
+      setPayingId(null);
+    }
+  };
+
+  const handleAppelCotisation = async () => {
+    if (!montantAppel || montantAppel <= 0) return showToast('Montant invalide', 'error');
+    setAppelLoading(true);
+    try {
+      await api.appelCotisation(groupId, montantAppel);
+      showToast('Appel de cotisation envoyé à tous les membres.');
+      load();
+    } catch (err) {
+      showToast(err.response?.data?.detail || 'Erreur lors de l\'appel de cotisation.', 'error');
+    } finally {
+      setAppelLoading(false);
+    }
+  };
+
   if (loading) return <PageLoader label="Chargement du groupe…" />;
   if (!group)  return (
     <div style={{ color: 'var(--paper)', textAlign: 'center', marginTop: '10rem' }}>
@@ -180,6 +331,11 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
 
   return (
     <motion.div {...pageVariants} style={{ paddingTop: '6rem', paddingBottom: '5rem' }}>
+      
+      <AnimatePresence>
+        {selectedMember && <MemberProfileModal member={selectedMember} onClose={() => setSelectedMember(null)} />}
+      </AnimatePresence>
+
       {/* Toast */}
       <AnimatePresence>
         {toast && (
@@ -250,13 +406,23 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
             </div>
           )}
           {myRequest === 'membre' && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '0.5rem',
-              padding: '0.5rem 1rem', border: '1px solid var(--success)',
-              color: 'var(--success)', fontSize: '0.8125rem', borderRadius: 2,
-            }}>
-              <Check size={14} /> Vous êtes membre
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <Btn variant="primary" onClick={() => navigate('/claims/new')} style={{ flexShrink: 0 }}>
+                <AlertTriangle size={14} /> Déclarer un sinistre
+              </Btn>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.5rem 1rem', border: '1px solid var(--success)',
+                color: 'var(--success)', fontSize: '0.8125rem', borderRadius: 2,
+              }}>
+                <Check size={14} /> Vous êtes membre
+              </div>
             </div>
+          )}
+          {myRequest === 'admin' && (
+            <Btn variant="primary" onClick={() => navigate('/claims/new')} style={{ flexShrink: 0 }}>
+              <AlertTriangle size={14} /> Déclarer un sinistre
+            </Btn>
           )}
         </div>
 
@@ -283,6 +449,45 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
               ))}
             </div>
           </motion.div>
+
+          {/* ── Cotisations for current member ── */}
+          {(myRequest === 'membre' || myRequest === 'admin') && (
+            <motion.div variants={staggerItem}>
+              <Card>
+                <SectionLabel>Mes cotisations pour ce groupe</SectionLabel>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                  {myCotisations.length === 0 && (
+                    <p className="text-caption" style={{ paddingBlock: '1.5rem' }}>Aucune cotisation due.</p>
+                  )}
+                  {myCotisations.map((cot, i) => (
+                    <div key={cot.id} style={{
+                      display: 'flex', alignItems: 'center', gap: '1rem',
+                      padding: '1rem 0',
+                      borderBottom: i < myCotisations.length - 1 ? '1px solid rgba(240,237,230,0.05)' : 'none',
+                      justifyContent: 'space-between'
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--paper)', fontWeight: 500 }}>
+                          Cotisation - {cot.montant_final} €
+                        </p>
+                        <p className="text-caption" style={{ marginTop: '0.125rem' }}>
+                          Statut : {cot.statut_paiement}
+                        </p>
+                      </div>
+                      {cot.statut_paiement === 'en_attente' && (
+                        <Btn variant="primary" loading={payingId === cot.id} onClick={() => handlePayment(cot.id)}>
+                          Payer ma cotisation
+                        </Btn>
+                      )}
+                      {cot.statut_paiement === 'paye' && (
+                        <Badge variant="success">Payé</Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </motion.div>
+          )}
 
           {/* ── Members list ── */}
           <motion.div variants={staggerItem}>
@@ -324,18 +529,52 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
                   }}>
                     <div style={{ width: 36, flexShrink: 0 }} />
                     <p style={{ flex: 1, fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(240,237,230,0.35)' }}>Membre</p>
+                    <p style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(240,237,230,0.35)', width: 80, textAlign: 'right' }}>Cotisation</p>
                     <p style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(240,237,230,0.35)', width: 80, textAlign: 'right' }}>Coefficient</p>
                     <p style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(240,237,230,0.35)', width: 60, textAlign: 'right' }}>Sinistres</p>
                   </div>
-                  {members.map((m, i) => <MemberRow key={m.utilisateur_id} member={m} index={i} />)}
+                  {members.map((m, i) => <MemberRow key={m.utilisateur_id} member={m} index={i} onClick={() => setSelectedMember(m)} />)}
                 </div>
               )}
             </Card>
           </motion.div>
 
-          {/* ── Admin: pending requests ── */}
+          {/* ── Admin: pending requests & actions ── */}
           {isAdmin && (
-            <motion.div variants={staggerItem}>
+            <motion.div variants={staggerItem} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              
+              <Card style={{ borderLeft: '3px solid var(--gold)', background: 'rgba(200,169,110,0.02)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '1.25rem' }}>
+                  <Shield size={15} color="var(--gold)" />
+                  <SectionLabel style={{ margin: 0 }}>Gestion des cotisations</SectionLabel>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--paper)', marginBottom: '0.5rem' }}>Montant de l'appel (en €)</p>
+                    <input
+                      type="number"
+                      value={montantAppel}
+                      onChange={e => setMontantAppel(e.target.value)}
+                      style={{
+                        width: '100%', padding: '0.75rem 1rem', background: 'var(--ink-90)',
+                        border: '1px solid var(--gold-line)', color: 'var(--paper)', borderRadius: 2
+                      }}
+                    />
+                  </div>
+                  <Btn variant="primary" loading={appelLoading} onClick={handleAppelCotisation} style={{ flexShrink: 0 }} disabled={cagnotte?.cotisation_appelee}>
+                    {cagnotte?.cotisation_appelee ? 'Cotisation appelée ce mois' : 'Imposer la cotisation'}
+                  </Btn>
+                </div>
+                {cagnotte?.cotisation_appelee && (
+                  <p className="text-caption" style={{ marginTop: '0.5rem', color: 'var(--warning)' }}>
+                    Vous avez déjà déclenché un appel de cotisation pour le mois en cours ({cagnotte.periode_courante}).
+                  </p>
+                )}
+                <p className="text-caption" style={{ marginTop: '0.75rem' }}>
+                  Ceci générera une demande de paiement pour tous les membres actifs du groupe (ajustée selon leur coefficient).
+                </p>
+              </Card>
+
               <Card style={{ borderLeft: '3px solid var(--gold)', background: 'rgba(200,169,110,0.02)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '1.25rem' }}>
                   <Shield size={15} color="var(--gold)" />

@@ -116,10 +116,11 @@ def get_members_by_group(db: Session, group_id: uuid.UUID) -> list[Adhesion]:
 def get_group_members_enriched(db: Session, group_id: uuid.UUID, admin_id: uuid.UUID) -> list[tuple]:
     """Retourne les membres actifs d'un groupe avec leurs infos utilisateur.
     Chaque élément est un tuple (Adhesion, Utilisateur)."""
-    from app.modules.users_kyc.models import Utilisateur
+    from app.modules.users_kyc.models import Utilisateur, ProfilOnboarding
     return (
-        db.query(Adhesion, Utilisateur)
+        db.query(Adhesion, Utilisateur, ProfilOnboarding)
         .join(Utilisateur, Utilisateur.id == Adhesion.utilisateur_id)
+        .outerjoin(ProfilOnboarding, ProfilOnboarding.utilisateur_id == Utilisateur.id)
         .filter(Adhesion.groupe_id == group_id, Adhesion.statut == "active")
         .order_by(Adhesion.date_adhesion)
         .all()

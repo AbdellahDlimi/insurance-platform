@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_current_user, require_role, TokenPayload
 from app.core.database import get_session
 from app.modules.groups import service, repository
+from app.modules.users_kyc import repository as kyc_repository
 from app.modules.groups.schemas import (
     GroupCreate,
     GroupOut,
@@ -67,6 +68,14 @@ def join_request(
     """
     Permet à un utilisateur dont le KYC est vérifié de demander à rejoindre un groupe.
     """
+    from fastapi import HTTPException, status
+    kyc = kyc_repository.get_kyc_by_user_id(db, uuid.UUID(current_user.user_id))
+    if not kyc or kyc.statut_verification != "verified":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Vérification KYC requise pour rejoindre un groupe."
+        )
+        
     return service.request_to_join_group(db, uuid.UUID(current_user.user_id), id)
 
 

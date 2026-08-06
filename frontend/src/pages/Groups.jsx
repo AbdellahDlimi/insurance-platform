@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, ChevronLeft, UserPlus, CheckCircle2 } from 'lucide-react';
+import { Shield, ChevronLeft, UserPlus, CheckCircle2, Search } from 'lucide-react';
 import { api } from '../api.js';
 import { pageVariants, Card, Btn, SectionLabel, Badge, PageLoader, DisplayItalic } from '../ui.jsx';
 
@@ -8,6 +8,7 @@ export const GroupsExplorer = ({ navigate }) => {
   const [groups, setGroups]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [requested, setRequested] = useState(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     api.getGroups()
@@ -27,6 +28,22 @@ export const GroupsExplorer = ({ navigate }) => {
     }
   };
 
+  const filteredGroups = groups
+    .filter(g => 
+      g.nom.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      g.specialite.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (!searchQuery) return 0;
+      const q = searchQuery.toLowerCase();
+      const aStarts = a.nom.toLowerCase().startsWith(q) || a.specialite.toLowerCase().startsWith(q);
+      const bStarts = b.nom.toLowerCase().startsWith(q) || b.specialite.toLowerCase().startsWith(q);
+      
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+      return 0;
+    });
+
   if (loading) return <PageLoader label="Chargement des groupes…" />;
 
   return (
@@ -40,20 +57,37 @@ export const GroupsExplorer = ({ navigate }) => {
               Groupes <DisplayItalic>Publics</DisplayItalic>
             </h1>
             <p style={{ color: 'var(--paper-dim)', fontSize: '0.875rem', marginTop: '0.375rem' }}>
-              {groups.length} groupe{groups.length !== 1 ? 's' : ''} disponible{groups.length !== 1 ? 's' : ''}
+              {filteredGroups.length} groupe{filteredGroups.length !== 1 ? 's' : ''} disponible{filteredGroups.length !== 1 ? 's' : ''}
             </p>
+          </div>
+          <div style={{ position: 'relative', width: '100%', maxWidth: '300px' }}>
+            <Search size={16} color="var(--paper-dim)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+            <input 
+              type="text" 
+              placeholder="Rechercher par nom..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem',
+                background: 'var(--ink-90)', border: '1px solid rgba(240,237,230,0.1)',
+                color: 'var(--paper)', fontSize: '0.875rem', outline: 'none',
+                transition: 'border-color 0.2s'
+              }}
+              onFocus={e => e.target.style.borderColor = 'var(--gold-dim)'}
+              onBlur={e => e.target.style.borderColor = 'rgba(240,237,230,0.1)'}
+            />
           </div>
         </div>
 
-        {groups.length === 0 ? (
+        {filteredGroups.length === 0 ? (
           <Card style={{ textAlign: 'center', paddingBlock: '4rem' }}>
             <Shield size={32} color="rgba(240,237,230,0.1)" style={{ margin: '0 auto 1rem' }} />
-            <p style={{ color: 'var(--paper-dim)' }}>Aucun groupe disponible pour le moment.</p>
+            <p style={{ color: 'var(--paper-dim)' }}>Aucun groupe ne correspond à votre recherche.</p>
           </Card>
         ) : (
           /* Editorial grid — 1px gap acting as rule lines */
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1px', background: 'var(--gold-line)' }}>
-            {groups.map((group, i) => (
+            {filteredGroups.map((group, i) => (
               <motion.div
                 key={group.id}
                 initial={{ opacity: 0 }}

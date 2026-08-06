@@ -47,9 +47,21 @@ class KYCSubmit(BaseModel):
     """Données KYC à soumettre et à chiffrer."""
     nom_complet: str
     date_naissance: str  # Format AAAA-MM-JJ
-    numero_document: str
     type_document: str  # ex: "passeport" | "cni"
-    fournisseur_api: str = "Veriff"
+
+class KYCReviewSubmit(BaseModel):
+    statut: str  # verified / failed
+    commentaire: str | None = None
+
+class KYCDetailOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    utilisateur_id: uuid.UUID
+    statut_verification: str
+    document_url: str | None = None
+    commentaire_review: str | None = None
+    verifie_le: datetime | None = None
+    pseudonyme: str | None = None
 
 
 class KYCStatusOut(BaseModel):
@@ -68,6 +80,10 @@ class OnboardingSubmit(BaseModel):
     budget_max_mensuel: float
     niveau_risque: str
     region: str | None = None
+    situation_familiale: str | None = None
+    nombre_personnes_a_charge: int | None = None
+    couverture_existante: list[str] | None = None
+    priorite_assurance: str | None = None
 
 class OnboardingOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -77,4 +93,8 @@ class OnboardingOut(BaseModel):
     budget_max_mensuel: float
     niveau_risque: str
     region: str | None
+    situation_familiale: str | None
+    nombre_personnes_a_charge: int | None
+    couverture_existante: list[str] | None
+    priorite_assurance: str | None
     onboarding_complete: bool = True

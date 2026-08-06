@@ -59,7 +59,9 @@ CREATE TABLE coffre_kyc (
     statut_verification     VARCHAR(50) NOT NULL DEFAULT 'pending', -- pending / verified / failed / manual_review
     fournisseur_api         VARCHAR(50), -- ex: Veriff, Onfido
     verifie_par_agent_id    UUID REFERENCES equipe_conformite(id), -- si validation manuelle
-    verifie_le              TIMESTAMPTZ
+    verifie_le              TIMESTAMPTZ,
+    document_url            TEXT,
+    commentaire_review      TEXT
 );
 
 -- ============================================================================
@@ -235,7 +237,26 @@ CREATE INDEX idx_journal_audit_cible ON journal_audit(cible_type, cible_id);
 CREATE INDEX idx_journal_audit_acteur_id ON journal_audit(acteur_id);
 
 -- ============================================================================
--- Fin du script — 15 tables créées
+-- 16. PROFIL_ONBOARDING
+-- ============================================================================
+CREATE TABLE profil_onboarding (
+    id                          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    utilisateur_id              UUID NOT NULL UNIQUE REFERENCES utilisateur(id),
+    tranche_age                 VARCHAR(20) NOT NULL,
+    situation_pro               VARCHAR(50) NOT NULL,
+    interets_assurance          TEXT[] NOT NULL,
+    budget_max_mensuel          NUMERIC(8,2) NOT NULL,
+    niveau_risque               VARCHAR(20) NOT NULL,
+    region                      VARCHAR(100),
+    situation_familiale         VARCHAR(30),
+    nombre_personnes_a_charge   INTEGER,
+    couverture_existante        TEXT[],
+    priorite_assurance          VARCHAR(30),
+    created_at                  TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================================================
+-- Fin du script — 16 tables créées
 -- Rappel : MoteurIA n'a pas de table (service sans état, pas d'attributs
 -- persistés sur le diagramme de classes)
 -- ============================================================================

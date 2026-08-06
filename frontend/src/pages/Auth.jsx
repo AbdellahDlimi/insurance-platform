@@ -11,7 +11,11 @@ export const AuthPage = ({ type, navigate, user, setUser }) => {
 
   useEffect(() => {
     if (user) {
-      navigate(user.onboarding_complete ? '/dashboard' : '/onboarding');
+      if (user.role === 'admin_plateforme') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate(user.onboarding_complete ? '/dashboard' : '/onboarding');
+      }
     }
   }, [user, navigate]);
 
@@ -30,12 +34,17 @@ export const AuthPage = ({ type, navigate, user, setUser }) => {
           api.getKycStatus().catch(() => ({ statut_verification: 'none' })),
           api.getOnboarding().catch(() => ({ onboarding_complete: false })),
         ]);
+        const isAdmin = res.user.role === 'admin_plateforme';
         setUser({
           ...res.user,
           kyc_status:          kyc.statut_verification === 'verified' ? 'verified' : 'pending',
           onboarding_complete: onboarding.onboarding_complete,
         });
-        navigate(onboarding.onboarding_complete ? '/dashboard' : '/onboarding');
+        if (isAdmin) {
+          navigate('/admin/dashboard');
+        } else {
+          navigate(onboarding.onboarding_complete ? '/dashboard' : '/onboarding');
+        }
       } else {
         await api.register(email, password, pseudonyme);
         const res = await api.login(email, password);

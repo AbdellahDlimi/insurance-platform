@@ -1,13 +1,30 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, FileText, CheckCircle2, ChevronLeft } from 'lucide-react';
+import { Lock, FileText, CheckCircle2, ChevronLeft, Clock, ShieldCheck } from 'lucide-react';
 import { api } from '../api.js';
 import { pageVariants, Card, Btn, Field, SectionLabel, StepProgress, DisplayItalic } from '../ui.jsx';
+
+const spinKeyframes = `
+@keyframes kyc-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.7; }
+}
+@keyframes kyc-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes kyc-dash {
+  0% { stroke-dashoffset: 283; }
+  50% { stroke-dashoffset: 70; }
+  100% { stroke-dashoffset: 283; }
+}
+`;
 
 export const KYCPage = ({ navigate }) => {
   const [step, setStep]       = useState(1);
   const [loading, setLoading] = useState(false);
   const [kycData, setKycData] = useState({});
+  const [file, setFile] = useState(null);
 
   const handleStep1 = (e) => {
     e.preventDefault();
@@ -20,11 +37,24 @@ export const KYCPage = ({ navigate }) => {
     setStep(2);
   };
 
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFile(e.target.files[0]);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!file) return;
     setLoading(true);
     try {
-      await api.submitKyc({ ...kycData, numero_document: 'DOC-' + Date.now(), fournisseur_api: 'Veriff' });
+      const fd = new FormData();
+      fd.append('nom_complet', kycData.nom_complet);
+      fd.append('date_naissance', kycData.date_naissance);
+      fd.append('type_document', kycData.type_document);
+      fd.append('file', file);
+      
+      await api.submitKyc(fd);
       setStep(3);
     } catch (err) {
       console.error(err);
@@ -35,6 +65,7 @@ export const KYCPage = ({ navigate }) => {
 
   return (
     <motion.div {...pageVariants} style={{ paddingTop: '6rem', paddingBottom: '4rem' }}>
+      <style>{spinKeyframes}</style>
       <div className="container-editorial" style={{ maxWidth: '640px' }}>
         <button
           onClick={() => navigate('/dashboard')}
@@ -76,29 +107,63 @@ export const KYCPage = ({ navigate }) => {
 
           {step === 2 && (
             <motion.form initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div className="drop-zone" style={{ padding: '3rem', textAlign: 'center' }}>
-                <FileText size={32} color="var(--gold-dim)" style={{ margin: '0 auto 1rem' }} />
-                <p style={{ color: 'var(--paper)', fontSize: '0.9375rem', marginBottom: '0.375rem' }}>Glissez-déposez votre document ici</p>
+              <div className="drop-zone" style={{ padding: '3rem', textAlign: 'center', position: 'relative' }}>
+                <input 
+                  type="file" 
+                  accept=".jpg,.jpeg,.png,.pdf" 
+                  onChange={handleFileChange}
+                  style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} 
+                />
+                <FileText size={32} color={file ? 'var(--gold)' : 'var(--gold-dim)'} style={{ margin: '0 auto 1rem' }} />
+                <p style={{ color: 'var(--paper)', fontSize: '0.9375rem', marginBottom: '0.375rem' }}>
+                  {file ? file.name : "Cliquez ou glissez-déposez votre document ici"}
+                </p>
                 <p className="text-caption">JPG, PNG ou PDF — Max 5 MB</p>
               </div>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <Btn type="button" variant="ghost" onClick={() => setStep(1)} style={{ flex: '0 0 auto' }}>← Retour</Btn>
-                <Btn type="submit" variant="primary" loading={loading} style={{ flex: 1 }}>Soumettre pour vérification</Btn>
+                <Btn type="submit" variant="primary" loading={loading} style={{ flex: 1 }} disabled={!file}>Soumettre pour vérification</Btn>
               </div>
             </motion.form>
           )}
 
           {step === 3 && (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ textAlign: 'center', paddingBlock: '2.5rem' }}>
-              <div style={{
-                width: '4rem', height: '4rem', borderRadius: '50%', border: '1px solid var(--success)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem',
-              }}>
-                <CheckCircle2 size={24} color="var(--success)" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ textAlign: 'center', paddingBlock: '3rem' }}>
+              {/* Animated waiting spinner */}
+              <div style={{ position: 'relative', width: '5.5rem', height: '5.5rem', margin: '0 auto 2rem' }}>
+                <svg width="88" height="88" viewBox="0 0 88 88" style={{ position: 'absolute', inset: 0, animation: 'kyc-spin 2.5s linear infinite' }}>
+                  <circle cx="44" cy="44" r="40" fill="none" stroke="rgba(200,169,110,0.12)" strokeWidth="2.5" />
+                  <circle cx="44" cy="44" r="40" fill="none" stroke="var(--gold)" strokeWidth="2.5"
+                    strokeDasharray="283" strokeLinecap="round"
+                    style={{ animation: 'kyc-dash 2s ease-in-out infinite' }} />
+                </svg>
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  animation: 'kyc-pulse 2.5s ease-in-out infinite'
+                }}>
+                  <Clock size={28} color="var(--gold)" />
+                </div>
               </div>
-              <h3 className="text-display-sm" style={{ marginBottom: '0.75rem' }}>Documents transmis</h3>
-              <p style={{ color: 'var(--paper-dim)', fontWeight: 300, marginBottom: '2rem' }}>
-                L'API de vérification analyse vos documents. Vous recevrez une notification sous peu.
+
+              <h3 className="text-display-sm" style={{ marginBottom: '0.5rem' }}>En attente de vérification</h3>
+              <p style={{ color: 'var(--paper-dim)', fontWeight: 300, fontSize: '0.9375rem', maxWidth: '34ch', margin: '0 auto 1rem' }}>
+                Vos documents ont été transmis avec succès.
+              </p>
+
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.5rem 1rem', background: 'rgba(200,169,110,0.08)',
+                border: '1px solid rgba(200,169,110,0.15)', marginBottom: '2rem',
+              }}>
+                <ShieldCheck size={14} color="var(--gold)" />
+                <span style={{ fontSize: '0.8125rem', color: 'var(--gold)', fontWeight: 500 }}>
+                  Notre équipe de conformité examine votre dossier
+                </span>
+              </div>
+
+              <p style={{ color: 'rgba(240,237,230,0.3)', fontSize: '0.8125rem', marginBottom: '2rem' }}>
+                Vous recevrez une notification dès que la vérification sera terminée.
               </p>
               <Btn variant="primary" onClick={() => navigate('/dashboard')}>Retour au Dashboard</Btn>
             </motion.div>

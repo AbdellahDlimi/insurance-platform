@@ -1,17 +1,62 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Bell, LogOut } from 'lucide-react';
+import { Menu, X, Bell, LogOut, CheckCheck } from 'lucide-react';
 import { Btn } from './ui.jsx';
+import { api } from './api.js';
 
-export const Navbar = ({ currentPath, navigate, user, logout, pendingCount = 0 }) => {
+export const Navbar = ({ currentPath, navigate, user, logout }) => {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const notifRef = useRef(null);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 24);
     window.addEventListener('scroll', fn);
     return () => window.removeEventListener('scroll', fn);
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      api.getNotifications(true)
+        .then(res => setUnreadCount(res.length))
+        .catch(err => console.error('Failed to load notifications:', err));
+    }
+  }, [user]);
+
+  const toggleNotifications = async () => {
+    if (!showNotifications) {
+      try {
+        const notifs = await api.getNotifications();
+        setNotifications(notifs);
+      } catch (e) {
+        console.error('Error fetching notifications:', e);
+      }
+    }
+    setShowNotifications(!showNotifications);
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await api.markAllRead();
+      setUnreadCount(0);
+      setNotifications(notifications.map(n => ({ ...n, lu: true })));
+    } catch (e) {
+      console.error('Error marking all as read:', e);
+    }
+  };
 
   const [avatarStr, setAvatarStr] = useState(null);
 
@@ -33,11 +78,16 @@ export const Navbar = ({ currentPath, navigate, user, logout, pendingCount = 0 }
   }, [user]);
 
   const navLinks = user
-    ? [
-        { name: 'Dashboard', path: '/dashboard' },
-        { name: 'Groupes',   path: '/groups' },
-        { name: 'Sinistres', path: '/claims' },
-      ]
+    ? user.role === 'admin_plateforme'
+      ? [
+          { name: 'Dashboard Admin', path: '/admin/dashboard' },
+          { name: 'Vérifications KYC', path: '/admin/kyc' },
+        ]
+      : [
+          { name: 'Dashboard', path: '/dashboard' },
+          { name: 'Groupes',   path: '/groups' },
+          { name: 'Sinistres', path: '/claims' },
+        ]
     : [
         { name: 'Comment ça marche', path: '/how-it-works' },
         { name: 'Fonctionnalités',   path: '/features' },
@@ -85,29 +135,83 @@ export const Navbar = ({ currentPath, navigate, user, logout, pendingCount = 0 }
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }} className="hidden-mobile">
           {user ? (
             <>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--paper-dim)', position: 'relative' }}>
-                <Bell size={18} />
-                {pendingCount > 0 ? (
-                  <motion.span
-                    key={pendingCount}
-                    initial={{ scale: 0.5 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                    style={{
-                      position: 'absolute', top: -4, right: -6,
-                      minWidth: 16, height: 16, borderRadius: '999px',
-                      background: 'var(--gold)', color: 'var(--ink)',
-                      fontSize: '0.5625rem', fontWeight: 700, lineHeight: '16px',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      padding: '0 3px',
-                    }}
-                  >
-                    {pendingCount > 9 ? '9+' : pendingCount}
-                  </motion.span>
-                ) : (
-                  <span style={{ position: 'absolute', top: 0, right: 0, width: 6, height: 6, borderRadius: '50%', background: 'var(--gold)' }} />
-                )}
-              </button>
+              <div ref={notifRef} style={{ position: 'relative' }}>
+                <button 
+                  onClick={toggleNotifications}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--paper-dim)', position: 'relative' }}
+                >
+                  <Bell size={18} />
+                  {unreadCount > 0 ? (
+                    <motion.span
+                      key={unreadCount}
+                      initial={{ scale: 0.5 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                      style={{
+                        position: 'absolute', top: -4, right: -6,
+                        minWidth: 16, height: 16, borderRadius: '999px',
+                        background: 'var(--gold)', color: 'var(--ink)',
+                        fontSize: '0.5625rem', fontWeight: 700, lineHeight: '16px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '0 3px',
+                      }}
+                    >
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </motion.span>
+                  ) : (
+                    <span style={{ position: 'absolute', top: 0, right: 0, width: 6, height: 6, borderRadius: '50%', background: 'transparent' }} />
+                  )}
+                </button>
+                
+                {/* Notifications Dropdown */}
+                <AnimatePresence>
+                  {showNotifications && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      style={{
+                        position: 'absolute', top: '100%', right: 0, marginTop: '1rem', width: 320,
+                        background: 'var(--surface)', border: '1px solid var(--gold-line)', borderRadius: 12,
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.4)', zIndex: 100, overflow: 'hidden'
+                      }}
+                    >
+                      <div style={{ padding: '1rem', borderBottom: '1px solid var(--gold-line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--paper)', fontFamily: 'var(--font-display)' }}>Notifications</h3>
+                        {unreadCount > 0 && (
+                          <button 
+                            onClick={handleMarkAllRead}
+                            style={{ background: 'none', border: 'none', color: 'var(--gold)', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                          >
+                            <CheckCheck size={14} /> Tout lire
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ maxHeight: 300, overflowY: 'auto', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {notifications.length === 0 ? (
+                          <p style={{ textAlign: 'center', color: 'var(--paper-dim)', padding: '1rem 0', fontSize: '0.875rem' }}>Aucune notification</p>
+                        ) : (
+                          notifications.map(n => (
+                            <div key={n.id} style={{
+                              padding: '0.75rem', borderRadius: 8,
+                              background: n.lu ? 'transparent' : 'rgba(200,169,110,0.05)',
+                              border: n.lu ? '1px solid transparent' : '1px solid var(--gold-dim)',
+                              display: 'flex', flexDirection: 'column', gap: '0.25rem'
+                            }}>
+                              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--paper)' }}>{n.message}</p>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--paper-dim)' }}>
+                                {new Date(n.created_at).toLocaleString('fr-FR', {
+                                  day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
               <div style={{ width: 1, height: 24, background: 'var(--gold-line)' }} />
               <button onClick={() => navigate('/profile')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none' }}>
                 <div style={{
@@ -201,14 +305,15 @@ export const Footer = ({ navigate }) => (
         </p>
       </div>
       {[
-        { title: 'Plateforme', links: ['Comment ça marche', 'Les Groupes', 'Tarification'] },
-        { title: 'Légal',      links: ['Mentions Légales', 'Confidentialité', 'CGU / CGV'] },
+        { title: 'Plateforme', links: [{ label: 'Comment ça marche', path: '/how-it-works' }, { label: 'Les Groupes', path: '/groups' }] },
+        { title: 'Légal',      links: [{ label: 'Mentions Légales', path: '#' }, { label: 'Confidentialité', path: '#' }] },
+        { title: 'Équipe',     links: [{ label: 'Espace Conformité', path: '/login?role=admin' }] }
       ].map(col => (
         <div key={col.title}>
           <p className="text-label" style={{ marginBottom: '1rem' }}>{col.title}</p>
           <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {col.links.map(l => (
-              <li key={l} className="text-caption" style={{ cursor: 'pointer' }}>{l}</li>
+              <li key={l.label} className="text-caption" style={{ cursor: 'pointer' }} onClick={() => navigate(l.path)}>{l.label}</li>
             ))}
           </ul>
         </div>

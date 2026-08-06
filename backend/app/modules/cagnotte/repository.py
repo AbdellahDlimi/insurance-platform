@@ -35,6 +35,7 @@ def create_cotisation(
     montant_base: float,
     coefficient_applique: float,
     montant_final: float,
+    periode: str,
     statut_paiement: str = "en_attente"
 ) -> Cotisation:
     # Remove existing pending cotisation for this period/adhesion if it exists
@@ -51,6 +52,7 @@ def create_cotisation(
         montant_base=montant_base,
         coefficient_applique=coefficient_applique,
         montant_final=montant_final,
+        periode=periode,
         statut_paiement=statut_paiement,
     )
     db.add(cotisation)

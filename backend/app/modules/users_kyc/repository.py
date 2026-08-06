@@ -36,7 +36,8 @@ def create_coffre_kyc(
     donnees_chiffrees: bytes,
     ref_cle_kms: str,
     fournisseur_api: str,
-    statut_verification: str = "pending"
+    statut_verification: str = "pending",
+    document_url: str = None
 ) -> CoffreKYC:
     # Delete existing KYC record if any to maintain 1-1 relationship
     db.query(CoffreKYC).filter(CoffreKYC.utilisateur_id == utilisateur_id).delete()
@@ -47,6 +48,7 @@ def create_coffre_kyc(
         ref_cle_kms=ref_cle_kms,
         fournisseur_api=fournisseur_api,
         statut_verification=statut_verification,
+        document_url=document_url
     )
     db.add(coffre)
     db.commit()
@@ -67,16 +69,22 @@ def update_kyc_status(
     utilisateur_id: uuid.UUID,
     statut_verification: str,
     verifie_le: datetime | None = None,
-    verifie_par_agent_id: uuid.UUID | None = None
+    verifie_par_agent_id: uuid.UUID | None = None,
+    commentaire_review: str | None = None
 ) -> CoffreKYC | None:
     coffre = get_kyc_by_user_id(db, utilisateur_id)
     if coffre:
         coffre.statut_verification = statut_verification
         coffre.verifie_le = verifie_le
         coffre.verifie_par_agent_id = verifie_par_agent_id
+        coffre.commentaire_review = commentaire_review
         db.commit()
         db.refresh(coffre)
     return coffre
+
+
+def get_all_pending_kyc(db: Session) -> list[CoffreKYC]:
+    return db.query(CoffreKYC).filter(CoffreKYC.statut_verification == "pending").all()
 
 
 def create_profil_onboarding(
@@ -93,7 +101,11 @@ def create_profil_onboarding(
         interets_assurance=data["interets_assurance"],
         budget_max_mensuel=data["budget_max_mensuel"],
         niveau_risque=data["niveau_risque"],
-        region=data.get("region")
+        region=data.get("region"),
+        situation_familiale=data.get("situation_familiale"),
+        nombre_personnes_a_charge=data.get("nombre_personnes_a_charge"),
+        couverture_existante=data.get("couverture_existante", []),
+        priorite_assurance=data.get("priorite_assurance")
     )
     db.add(profil)
     db.commit()

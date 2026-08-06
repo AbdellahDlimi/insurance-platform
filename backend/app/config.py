@@ -15,3 +15,8 @@ SMTP_FROM = os.environ.get("SMTP_FROM", "TrustPool <noreply@trustpool.io>")
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
 CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000").split(",")
+
+# Stripe config
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")

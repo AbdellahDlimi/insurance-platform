@@ -265,6 +265,23 @@ export const LandingPage = ({ navigate }) => {
         </div>
       </section>
 
+      {/* ── COMPLIANCE LOGIN LINK ── */}
+      <div style={{ textAlign: 'center', paddingBottom: '2rem', background: 'var(--ink-90)' }}>
+        <button
+          onClick={() => navigate('/login?role=admin')}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+            color: 'var(--paper-dim)', fontSize: '0.8125rem',
+            opacity: 0.6, transition: 'opacity 0.2s',
+          }}
+          onMouseOver={e => e.currentTarget.style.opacity = 1}
+          onMouseOut={e => e.currentTarget.style.opacity = 0.6}
+        >
+          <Lock size={12} /> Équipe de conformité → Se connecter
+        </button>
+      </div>
+
       <style>{`
         @media (max-width: 768px) {
           .features-intro { grid-template-columns: 1fr !important; }

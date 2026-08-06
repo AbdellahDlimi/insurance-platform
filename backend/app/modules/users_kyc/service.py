@@ -7,10 +7,11 @@ import secrets
 import string
 import threading
 import uuid
-import time
+import os
+import shutil
 from datetime import datetime, timezone
 
-from fastapi import HTTPException, status, BackgroundTasks
+from fastapi import HTTPException, status, BackgroundTasks, UploadFile
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -82,38 +83,21 @@ def login_user(db: Session, data: UserLogin) -> TokenResponse:
     )
 
 
-def _valider_kyc_mock(db_session_factory, user_id: uuid.UUID) -> None:
+def submit_kyc(db: Session, user_id: uuid.UUID, data: dict, file: UploadFile) -> CoffreKYC:
     """
-    Simule la validation du KYC après un délai de 5 secondes.
-    Met à jour la base de données et publie l'événement Kafka.
+    Chiffre les données KYC en utilisant Fernet (KMS) et enregistre le fichier.
     """
-    time.sleep(5)
-    db = db_session_factory()
-    try:
-        now = datetime.now(timezone.utc)
-        repository.update_kyc_status(
-            db,
-            utilisateur_id=user_id,
-            statut_verification="verified",
-            verifie_le=now,
-        )
-        produce_kyc_verified(user_id, "verified", now)
-    except Exception as e:
-        print(f"Erreur lors de la validation KYC mockée: {e}")
-    finally:
-        db.close()
+    # Enregistrement du fichier
+    upload_dir = f"uploads/kyc/{user_id}"
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = os.path.join(upload_dir, file.filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
 
-
-def submit_kyc(db: Session, db_session_factory, user_id: uuid.UUID, data: KYCSubmit) -> CoffreKYC:
-    """
-    Chiffre les données KYC en utilisant Fernet (KMS) et les enregistre.
-    Déclenche ensuite une validation mockée asynchrone.
-    """
     kyc_data = {
-        "nom_complet": data.nom_complet,
-        "date_naissance": data.date_naissance,
-        "numero_document": data.numero_document,
-        "type_document": data.type_document,
+        "nom_complet": data.get("nom_complet"),
+        "date_naissance": data.get("date_naissance"),
+        "type_document": data.get("type_document"),
     }
     
     # Sérialisation et chiffrement
@@ -126,15 +110,39 @@ def submit_kyc(db: Session, db_session_factory, user_id: uuid.UUID, data: KYCSub
         utilisateur_id=user_id,
         donnees_chiffrees=donnees_chiffrees,
         ref_cle_kms="fernet_key",
-        fournisseur_api=data.fournisseur_api,
-        statut_verification="pending"
+        fournisseur_api="Manual",
+        statut_verification="pending",
+        document_url=file_path
     )
     
-    # Simulation d'une vérification asynchrone externe
-    thread = threading.Thread(target=_valider_kyc_mock, args=(db_session_factory, user_id))
-    thread.start()
-    
     return coffre
+
+
+def review_kyc(db: Session, kyc_id: uuid.UUID, statut: str, commentaire: str | None, admin_id: uuid.UUID) -> CoffreKYC:
+    """
+    Validation manuelle du KYC par un agent de conformité.
+    """
+    coffre = repository.get_kyc_by_id(db, kyc_id)
+    if not coffre:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="KYC non trouvé",
+        )
+    
+    now = datetime.now(timezone.utc)
+    updated_coffre = repository.update_kyc_status(
+        db,
+        utilisateur_id=coffre.utilisateur_id,
+        statut_verification=statut,
+        verifie_le=now,
+        verifie_par_agent_id=admin_id,
+        commentaire_review=commentaire
+    )
+    
+    if statut == "verified":
+        produce_kyc_verified(coffre.utilisateur_id, "verified", now)
+        
+    return updated_coffre
 
 
 def get_kyc_status(db: Session, user_id: uuid.UUID) -> CoffreKYC:

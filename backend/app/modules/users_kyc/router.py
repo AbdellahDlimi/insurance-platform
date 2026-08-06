@@ -1,12 +1,12 @@
 import uuid
 
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends, BackgroundTasks, Form, UploadFile, File, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user, TokenPayload
 from app.core.database import get_session, SessionLocal
 from app.modules.users_kyc import service, repository
-from app.modules.users_kyc.schemas import UserCreate, UserLogin, UserOut, UserUpdate, TokenResponse, KYCSubmit, KYCStatusOut, OnboardingSubmit, OnboardingOut
+from app.modules.users_kyc.schemas import UserCreate, UserLogin, UserOut, UserUpdate, TokenResponse, KYCStatusOut, OnboardingSubmit, OnboardingOut, KYCReviewSubmit, KYCDetailOut
 from app.modules.notifications.dependencies import get_notification_service
 from app.modules.notifications.service import NotificationService
 
@@ -57,7 +57,10 @@ def update_profile(
 
 @router.post("/kyc/submit", response_model=KYCStatusOut, status_code=201)
 def submit_kyc(
-    data: KYCSubmit,
+    nom_complet: str = Form(...),
+    date_naissance: str = Form(...),
+    type_document: str = Form(...),
+    file: UploadFile = File(...),
     current_user: TokenPayload = Depends(get_current_user),
     db: Session = Depends(get_session),
 ):
@@ -65,8 +68,66 @@ def submit_kyc(
     Permet à l'utilisateur de soumettre ses pièces justificatives KYC.
     Les données seront stockées sous forme chiffrée.
     """
-    coffre = service.submit_kyc(db, SessionLocal, uuid.UUID(current_user.user_id), data)
+    data = {
+        "nom_complet": nom_complet,
+        "date_naissance": date_naissance,
+        "type_document": type_document
+    }
+    coffre = service.submit_kyc(db, uuid.UUID(current_user.user_id), data, file)
     return coffre
+
+
+@router.get("/kyc/pending", response_model=list[KYCDetailOut])
+def get_pending_kyc(
+    current_user: TokenPayload = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    if current_user.role != "admin_plateforme":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès réservé aux administrateurs")
+    
+    coffres = repository.get_all_pending_kyc(db)
+    result = []
+    for c in coffres:
+        user = repository.get_user_by_id(db, c.utilisateur_id)
+        result.append({
+            "id": c.id,
+            "utilisateur_id": c.utilisateur_id,
+            "statut_verification": c.statut_verification,
+            "document_url": c.document_url,
+            "commentaire_review": c.commentaire_review,
+            "verifie_le": c.verifie_le,
+            "pseudonyme": user.pseudonyme if user else None
+        })
+    return result
+
+
+@router.post("/kyc/{kyc_id}/review", response_model=KYCDetailOut)
+def review_kyc(
+    kyc_id: uuid.UUID,
+    data: KYCReviewSubmit,
+    current_user: TokenPayload = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    if current_user.role != "admin_plateforme":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès réservé aux administrateurs")
+    
+    coffre = service.review_kyc(
+        db=db,
+        kyc_id=kyc_id,
+        statut=data.statut,
+        commentaire=data.commentaire,
+        admin_id=uuid.UUID(current_user.user_id)
+    )
+    user = repository.get_user_by_id(db, coffre.utilisateur_id)
+    return {
+        "id": coffre.id,
+        "utilisateur_id": coffre.utilisateur_id,
+        "statut_verification": coffre.statut_verification,
+        "document_url": coffre.document_url,
+        "commentaire_review": coffre.commentaire_review,
+        "verifie_le": coffre.verifie_le,
+        "pseudonyme": user.pseudonyme if user else None
+    }
 
 
 @router.get("/kyc/status", response_model=KYCStatusOut)

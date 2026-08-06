@@ -7,7 +7,7 @@ from app.core.database import get_session
 from app.modules.cagnotte import service, repository
 from app.modules.cagnotte.schemas import CagnotteOut, CotisationOut
 from app.modules.cagnotte.models import Cotisation
-from app.modules.groups.models import Adhesion
+from app.modules.groups.models import Adhesion, Groupe
 
 router = APIRouter(tags=["cagnotte"])
 
@@ -27,7 +27,20 @@ def get_group_cagnotte(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Cagnotte introuvable pour ce groupe.",
         )
-    return cagnotte
+        
+    cotisation_appelee = db.query(Cotisation).filter(
+        Cotisation.cagnotte_id == cagnotte.id,
+        Cotisation.periode == cagnotte.periode_courante
+    ).first() is not None
+    
+    return {
+        "id": cagnotte.id,
+        "groupe_id": cagnotte.groupe_id,
+        "solde_actuel": cagnotte.solde_actuel,
+        "solde_buffer_pool": cagnotte.solde_buffer_pool,
+        "periode_courante": cagnotte.periode_courante,
+        "cotisation_appelee": cotisation_appelee
+    }
 
 
 @router.get("/members/{id}/cotisation", response_model=list[CotisationOut])
@@ -79,4 +92,52 @@ def trigger_recalculate(
             detail="Accès réservé aux administrateurs ou à l'équipe de conformité.",
         )
     return service.recalculer_fin_de_periode(db)
+
+from pydantic import BaseModel
+class AppelCotisationInput(BaseModel):
+    montant: float
+
+@router.post("/groups/{id}/appel-cotisation")
+def appel_cotisation(
+    id: uuid.UUID,
+    data: AppelCotisationInput,
+    current_user: TokenPayload = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    """
+    Permet à l'admin du groupe de déclencher un appel de cotisation pour tous les membres actifs.
+    """
+    group = db.query(Groupe).filter(Groupe.id == id).first()
+    if not group or group.admin_id != uuid.UUID(current_user.user_id):
+        raise HTTPException(status_code=403, detail="Non autorisé. Vous devez être l'admin du groupe.")
+        
+    cagnotte = repository.get_cagnotte_by_group_id(db, id)
+    if not cagnotte:
+        raise HTTPException(status_code=404, detail="Cagnotte introuvable")
+
+    already_called = db.query(Cotisation).filter(
+        Cotisation.cagnotte_id == cagnotte.id,
+        Cotisation.periode == cagnotte.periode_courante
+    ).first() is not None
+    
+    if already_called:
+        raise HTTPException(status_code=400, detail="Une cotisation a déjà été appelée pour le mois en cours.")
+
+    adhesions = db.query(Adhesion).filter(Adhesion.groupe_id == id, Adhesion.statut == "active").all()
+    count = 0
+    for adhesion in adhesions:
+        repository.create_cotisation(
+            db=db,
+            adhesion_id=adhesion.id,
+            cagnotte_id=cagnotte.id,
+            montant_base=data.montant,
+            coefficient_applique=float(adhesion.coefficient_actuel),
+            montant_final=data.montant * float(adhesion.coefficient_actuel),
+            periode=cagnotte.periode_courante,
+            statut_paiement="en_attente"
+        )
+        count += 1
+        
+    db.commit()
+    return {"message": f"Appel de cotisation de {data.montant}€ envoyé à {count} membres."}
 
