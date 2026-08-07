@@ -22,6 +22,16 @@ class Utilisateur(Base):
     profil_onboarding = relationship("ProfilOnboarding", back_populates="utilisateur", uselist=False)
 
 
+class EquipeConformite(Base):
+    __tablename__ = "equipe_conformite"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    nom = Column(String(150), nullable=False)
+    email = Column(String(255), unique=True, nullable=False)
+    mot_de_passe_hash = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+
 class CoffreKYC(Base):
     __tablename__ = "coffre_kyc"
 
@@ -31,7 +41,7 @@ class CoffreKYC(Base):
     ref_cle_kms = Column(String(255), nullable=False)
     statut_verification = Column(String(50), nullable=False, default="pending")
     fournisseur_api = Column(String(50), nullable=True)
-    verifie_par_agent_id = Column(UUID(as_uuid=True), nullable=True)  # FK to equipe_conformite
+    verifie_par_agent_id = Column(UUID(as_uuid=True), ForeignKey("equipe_conformite.id"), nullable=True)  # FK to equipe_conformite
     verifie_le = Column(DateTime(timezone=True), nullable=True)
     document_url = Column(String(500), nullable=True)
     commentaire_review = Column(String(1000), nullable=True)

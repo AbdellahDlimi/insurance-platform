@@ -27,8 +27,11 @@ CREATE TABLE utilisateur (
 -- 2. EQUIPE_CONFORMITE
 -- ============================================================================
 CREATE TABLE equipe_conformite (
-    id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    nom     VARCHAR(150) NOT NULL
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nom                 VARCHAR(150) NOT NULL,
+    email               VARCHAR(255) NOT NULL UNIQUE,
+    mot_de_passe_hash   VARCHAR(255) NOT NULL,
+    created_at          TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 
 -- ============================================================================

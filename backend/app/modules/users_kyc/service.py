@@ -70,13 +70,23 @@ def register_user(
 
 def login_user(db: Session, data: UserLogin) -> TokenResponse:
     user = repository.get_user_by_email(db, data.email)
-    if not user or not pwd_context.verify(data.mot_de_passe, user.mot_de_passe_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email ou mot de passe incorrect",
-        )
+    if user:
+        if not pwd_context.verify(data.mot_de_passe, user.mot_de_passe_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Email ou mot de passe incorrect",
+            )
+        payload = TokenPayload(user_id=str(user.id), role=user.role, group_ids=[])
+    else:
+        agent = repository.get_agent_by_email(db, data.email)
+        if agent and pwd_context.verify(data.mot_de_passe, agent.mot_de_passe_hash):
+            payload = TokenPayload(user_id=str(agent.id), role="admin_plateforme", group_ids=[])
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Email ou mot de passe incorrect",
+            )
 
-    payload = TokenPayload(user_id=str(user.id), role=user.role, group_ids=[])
     return TokenResponse(
         access_token=create_access_token(payload),
         refresh_token=create_refresh_token(payload),
@@ -118,7 +128,15 @@ def submit_kyc(db: Session, user_id: uuid.UUID, data: dict, file: UploadFile) ->
     return coffre
 
 
-def review_kyc(db: Session, kyc_id: uuid.UUID, statut: str, commentaire: str | None, admin_id: uuid.UUID) -> CoffreKYC:
+def review_kyc(
+    db: Session,
+    kyc_id: uuid.UUID,
+    statut: str,
+    commentaire: str | None,
+    admin_id: uuid.UUID,
+    notification_service: NotificationService | None = None,
+    background_tasks: BackgroundTasks | None = None
+) -> CoffreKYC:
     """
     Validation manuelle du KYC par un agent de conformité.
     """
@@ -139,8 +157,28 @@ def review_kyc(db: Session, kyc_id: uuid.UUID, statut: str, commentaire: str | N
         commentaire_review=commentaire
     )
     
+    user = repository.get_user_by_id(db, coffre.utilisateur_id)
+
     if statut == "verified":
         produce_kyc_verified(coffre.utilisateur_id, "verified", now)
+        if notification_service and user:
+            notification_service.notify_kyc_approved(
+                session=db,
+                user_id=user.id,
+                email=user.email,
+                pseudonyme=user.pseudonyme,
+                background_tasks=background_tasks
+            )
+    elif statut == "failed":
+        if notification_service and user:
+            notification_service.notify_kyc_rejected(
+                session=db,
+                user_id=user.id,
+                email=user.email,
+                pseudonyme=user.pseudonyme,
+                reason=commentaire or "Non spécifié",
+                background_tasks=background_tasks
+            )
         
     return updated_coffre
 

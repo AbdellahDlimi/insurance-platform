@@ -5,7 +5,7 @@ Aucune logique métier ici — uniquement des opérations CRUD.
 import uuid
 from datetime import datetime
 from sqlalchemy.orm import Session
-from app.modules.users_kyc.models import Utilisateur, CoffreKYC
+from app.modules.users_kyc.models import Utilisateur, CoffreKYC, EquipeConformite
 
 
 def get_user_by_email(db: Session, email: str) -> Utilisateur | None:
@@ -14,6 +14,14 @@ def get_user_by_email(db: Session, email: str) -> Utilisateur | None:
 
 def get_user_by_id(db: Session, user_id: uuid.UUID) -> Utilisateur | None:
     return db.query(Utilisateur).filter(Utilisateur.id == user_id).first()
+
+
+def get_agent_by_email(db: Session, email: str) -> EquipeConformite | None:
+    return db.query(EquipeConformite).filter(EquipeConformite.email == email).first()
+
+
+def get_agent_by_id(db: Session, agent_id: uuid.UUID) -> EquipeConformite | None:
+    return db.query(EquipeConformite).filter(EquipeConformite.id == agent_id).first()
 
 
 def create_user(

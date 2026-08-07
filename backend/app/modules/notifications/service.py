@@ -114,6 +114,52 @@ class NotificationService:
             background_tasks=background_tasks,
         )
 
+    # ── KYC ───────────────────────────────────────────────────────────────────
+
+    def notify_kyc_approved(
+        self,
+        session: Session,
+        user_id: UUID,
+        email: str,
+        pseudonyme: str,
+        background_tasks: BackgroundTasks | None = None,
+    ) -> None:
+        """KYC validation approved."""
+        self._persist_in_app(
+            session,
+            user_id,
+            "kyc_approved",
+            "Votre identité a été vérifiée avec succès ✅.",
+        )
+        self.email_service.send_kyc_approved_email(
+            to=email,
+            pseudonyme=pseudonyme,
+            background_tasks=background_tasks,
+        )
+
+    def notify_kyc_rejected(
+        self,
+        session: Session,
+        user_id: UUID,
+        email: str,
+        pseudonyme: str,
+        reason: str,
+        background_tasks: BackgroundTasks | None = None,
+    ) -> None:
+        """KYC validation rejected."""
+        self._persist_in_app(
+            session,
+            user_id,
+            "kyc_rejected",
+            f"Votre vérification d'identité n'a pas pu aboutir. Raison : {reason}",
+        )
+        self.email_service.send_kyc_rejected_email(
+            to=email,
+            pseudonyme=pseudonyme,
+            reason=reason,
+            background_tasks=background_tasks,
+        )
+
     # ── Standard notification operations ──────────────────────────────────────
 
     def get_user_notifications(

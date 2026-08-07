@@ -34,6 +34,19 @@ def me(
     current_user: TokenPayload = Depends(get_current_user),
     db: Session = Depends(get_session),
 ):
+    if current_user.role == "admin_plateforme":
+        agent = repository.get_agent_by_id(db, uuid.UUID(current_user.user_id))
+        if agent:
+            return {
+                "id": agent.id,
+                "email": agent.email,
+                "pseudonyme": agent.nom,
+                "role": "admin_plateforme",
+                "statut_compte": "actif",
+                "onboarding_complete": True,
+                "created_at": agent.created_at
+            }
+            
     return repository.get_user_by_id(db, uuid.UUID(current_user.user_id))
 
 
@@ -105,8 +118,10 @@ def get_pending_kyc(
 def review_kyc(
     kyc_id: uuid.UUID,
     data: KYCReviewSubmit,
+    background_tasks: BackgroundTasks,
     current_user: TokenPayload = Depends(get_current_user),
     db: Session = Depends(get_session),
+    notification_service: NotificationService = Depends(get_notification_service),
 ):
     if current_user.role != "admin_plateforme":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès réservé aux administrateurs")
@@ -116,7 +131,9 @@ def review_kyc(
         kyc_id=kyc_id,
         statut=data.statut,
         commentaire=data.commentaire,
-        admin_id=uuid.UUID(current_user.user_id)
+        admin_id=uuid.UUID(current_user.user_id),
+        notification_service=notification_service,
+        background_tasks=background_tasks
     )
     user = repository.get_user_by_id(db, coffre.utilisateur_id)
     return {
