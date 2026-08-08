@@ -62,74 +62,105 @@ export const LandingPage = ({ navigate }) => {
       {/* ── HERO ── */}
       <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', overflow: 'hidden', paddingTop: '5rem' }}>
 
-        {/* Hero background image */}
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 0,
-          backgroundImage: 'url(/hero_background.png)',
-          backgroundSize: 'cover', backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-        }} />
-        {/* Dark overlay on top of image */}
+        {/* Hero background video */}
+        <video
+          autoPlay muted loop playsInline
+          style={{
+            position: 'absolute', inset: 0, zIndex: 0,
+            width: '100%', height: '100%',
+            objectFit: 'cover', objectPosition: 'center',
+          }}
+        >
+          <source src="/logo.mp4" type="video/mp4" />
+        </video>
+        {/* Dark overlay on top of video */}
         <div style={{
           position: 'absolute', inset: 0, zIndex: 1,
-          background: 'linear-gradient(110deg, rgba(12,12,12,0.92) 45%, rgba(12,12,12,0.65) 100%)',
+          background: 'linear-gradient(110deg, rgba(12,12,12,0.93) 40%, rgba(12,12,12,0.7) 70%, rgba(12,12,12,0.55) 100%)',
         }} />
         {/* Gold ambient bottom */}
         <div style={{ position: 'absolute', bottom: '-10%', left: '5%', width: '30rem', height: '30rem', zIndex: 1 }} className="blur-gold" />
 
         <WatermarkStrip />
 
-        <div className="container-editorial" style={{ position: 'relative', zIndex: 2 }}>
-          {/* Live badge */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', border: '1px solid var(--gold-line)', padding: '0.375rem 0.875rem', marginBottom: '2.5rem', background: 'rgba(12,12,12,0.5)', backdropFilter: 'blur(8px)' }}
-          >
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#5A9E7C', display: 'inline-block' }} />
-            <span style={{ fontSize: '0.6875rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold)' }}>V2.0 Live — TrustPool IA</span>
-          </motion.div>
+        <div className="container-editorial" style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
 
-          {/* Headline */}
-          <div style={{ maxWidth: '900px' }}>
-            <motion.h1
-              className="text-display-xl"
-              initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.75, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
-            >
-              L'Assurance
-            </motion.h1>
-            <motion.div
-              initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.75, delay: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="text-display-xl"
-            >
-              <DisplayItalic>Collaborative.</DisplayItalic>
-            </motion.div>
+              {/* Headline */}
+              <div style={{ maxWidth: '1000px' }}>
+                <motion.h1
+                  className="text-display-xl"
+                  initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.75, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+                >
+                  Protégez-vous
+                </motion.h1>
+                <motion.div
+                  initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.75, delay: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  className="text-display-xl"
+                >
+                  <DisplayItalic>Ensemble.</DisplayItalic>
+                </motion.div>
 
-            <motion.p
-              initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.38 }}
-              style={{ marginTop: '1.75rem', fontSize: 'clamp(1rem, 2vw, 1.25rem)', color: 'var(--paper-dim)', maxWidth: '52ch', lineHeight: 1.65, fontWeight: 300 }}
-            >
-              Rejoignez des groupes solidaires, cotisez ensemble, reprenez le contrôle.
-              Le reliquat de la cagnotte vous appartient. L'IA sécurise le reste.
-            </motion.p>
-          </div>
+                <motion.p
+                  initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.38 }}
+                  style={{ marginTop: '2rem', fontSize: 'clamp(1.0625rem, 2.2vw, 1.3125rem)', color: 'var(--paper-dim)', maxWidth: '58ch', lineHeight: 1.75, fontWeight: 300, marginInline: 'auto' }}
+                >
+                  Fini les assureurs opaques qui gardent vos excédents. Avec TrustPool, vous
+                  rejoignez un groupe solidaire, vous cotisez dans une cagnotte commune 100&nbsp;%
+                  transparente, et en cas de coup dur — c'est votre communauté qui vous indemnise.
+                  Ce qu'il reste en fin d'année&nbsp;? <span style={{ color: 'var(--gold)', fontWeight: 500 }}>Il vous appartient.</span>
+                </motion.p>
+              </div>
 
-          {/* CTAs */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }}
-            style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '2.5rem' }}
-          >
-            <Btn variant="primary" onClick={() => navigate('/register')}>
-              Rejoindre TrustPool <ArrowRight size={15} />
-            </Btn>
-            <Btn variant="secondary" onClick={() => navigate('/#how-it-works')}>
-              Comment ça marche ?
-            </Btn>
-          </motion.div>
+              {/* CTAs */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }}
+                style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '2.5rem', justifyContent: 'center' }}
+              >
+                <Btn variant="primary" onClick={() => navigate('/register')}>
+                  Créer mon compte gratuitement <ArrowRight size={15} />
+                </Btn>
+                <Btn variant="secondary" onClick={() => navigate('/#how-it-works')}>
+                  Découvrir le fonctionnement
+                </Btn>
+              </motion.div>
 
-          <TrustRow />
+              <TrustRow />
+
+              {/* Hero stats */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}
+                style={{
+                  display: 'flex', flexWrap: 'wrap', gap: '0', marginTop: '4rem',
+                  border: '1px solid var(--gold-line)', background: 'rgba(12,12,12,0.55)',
+                  backdropFilter: 'blur(16px)',
+                }}
+              >
+                {[
+                  { value: '300+', label: 'Membres actifs' },
+                  { value: '15+',  label: 'Groupes solidaires' },
+                  { value: '48h',  label: "Délai d'indemnisation" },
+                  { value: '100%', label: 'Transparence financière' },
+                ].map((stat, i, arr) => (
+                  <div
+                    key={stat.label}
+                    style={{
+                      flex: '1 1 140px', padding: '1.5rem 2rem', textAlign: 'center',
+                      borderRight: i < arr.length - 1 ? '1px solid var(--gold-line)' : 'none',
+                    }}
+                    className="hero-stat-cell"
+                  >
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 700, color: 'var(--gold)', lineHeight: 1, marginBottom: '0.375rem' }}>
+                      {stat.value}
+                    </div>
+                    <div style={{ fontSize: '0.6875rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--paper-dim)', fontWeight: 400 }}>
+                      {stat.label}
+                    </div>
+                  </div>
+                ))}
+              </motion.div>
         </div>
 
         {/* Bottom gold line */}
@@ -286,6 +317,8 @@ export const LandingPage = ({ navigate }) => {
         @media (max-width: 768px) {
           .features-intro { grid-template-columns: 1fr !important; }
           .features-intro > div:last-child { height: 200px !important; }
+          .hero-stat-cell { border-right: none !important; border-bottom: 1px solid rgba(200,169,110,0.25); }
+          .hero-stat-cell:last-child { border-bottom: none !important; }
         }
       `}</style>
     </motion.div>

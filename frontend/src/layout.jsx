@@ -101,12 +101,13 @@ export const Navbar = ({ currentPath, navigate, user, logout }) => {
           onClick={() => navigate('/')}
           style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', background: 'none', border: 'none', cursor: 'pointer' }}
         >
-          <img
-            src="/logo.png"
-            alt="TrustPool"
-            style={{ height: '2rem', width: 'auto', objectFit: 'contain' }}
+          <video
+            autoPlay muted loop playsInline
+            style={{ height: '2.5rem', width: 'auto', objectFit: 'contain', borderRadius: '4px' }}
             onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-          />
+          >
+            <source src="/logo.mp4" type="video/mp4" />
+          </video>
           <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.125rem', fontWeight: 700, color: 'var(--paper)', letterSpacing: '-0.02em', display: 'none' }}>
             Trust<span style={{ color: 'var(--gold)', fontStyle: 'italic' }}>Pool</span>
           </span>
