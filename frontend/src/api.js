@@ -136,11 +136,11 @@ export const api = {
       pendingRequests,
       recentActivity: notifications.slice(0, 5).map(n => ({
         id:      n.id,
-        title:   n.type_notification || 'Notification',
-        message: n.message || '',
+        title:   n.type || 'Notification',
+        message: n.contenu || '',
         date:    n.created_at ? new Date(n.created_at).toLocaleDateString('fr-FR') : '',
         read:    n.lu || false,
-        type:    n.type_notification?.includes('sinistre') ? 'alert' : 'success',
+        type:    (n.type || '').includes('sinistre') ? 'alert' : 'success',
       })),
     };
   },
@@ -171,6 +171,10 @@ export const api = {
   },
   appelCotisation: async (groupId, montant) => {
     const res = await axiosClient.post(`/groups/${groupId}/appel-cotisation`, { montant });
+    return res.data;
+  },
+  payCotisation: async (cotisationId) => {
+    const res = await axiosClient.post(`/payments/confirm/${cotisationId}`);
     return res.data;
   },
 };

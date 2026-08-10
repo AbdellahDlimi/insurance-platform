@@ -162,6 +162,15 @@ class NotificationService:
 
     # ── Standard notification operations ──────────────────────────────────────
 
+    def notify_payment_success(self, session: Session, user_id: UUID) -> None:
+        """Payment was successful."""
+        self._persist_in_app(
+            session,
+            user_id,
+            "cotisation",
+            "Votre paiement a bien été reçu. Merci de votre contribution !",
+        )
+
     def get_user_notifications(
         self, session: Session, user_id: UUID, non_lues_only: bool = False
     ) -> list[Notification]:

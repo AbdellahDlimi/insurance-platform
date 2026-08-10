@@ -162,6 +162,29 @@ def validate_join_request(
         adhesion = repository.create_adhesion(db, req.utilisateur_id, req.groupe_id)
         adhesion_id = adhesion.id
 
+        # Création de la cotisation initiale
+        from app.modules.cagnotte.repository import create_cotisation, get_cagnotte_by_group_id
+        from app.modules.cagnotte.models import Cotisation
+        cagnotte = get_cagnotte_by_group_id(db, group.id)
+        if cagnotte:
+            # Récupérer le montant de l'appel en cours s'il y en a un
+            existing_cot = db.query(Cotisation).filter(
+                Cotisation.cagnotte_id == cagnotte.id,
+                Cotisation.periode == cagnotte.periode_courante
+            ).first()
+            if existing_cot:
+                mb = float(existing_cot.montant_base)
+                create_cotisation(
+                    db=db,
+                    adhesion_id=adhesion.id,
+                    cagnotte_id=cagnotte.id,
+                    montant_base=mb,
+                    coefficient_applique=float(adhesion.coefficient_actuel),
+                    montant_final=mb * float(adhesion.coefficient_actuel),
+                    periode=cagnotte.periode_courante,
+                    statut_paiement="en_attente"
+                )
+
     # 4. Publier l'événement Kafka adhesion.validated
     produce_adhesion_validated(
         adhesion_id=adhesion_id,

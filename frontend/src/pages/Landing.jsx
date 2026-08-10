@@ -51,7 +51,7 @@ export const LandingPage = ({ navigate }) => {
   ];
 
   const steps = [
-    { num: '01', title: 'Vérification KYC',   desc: 'Votre identité est vérifiée puis transformée en pseudonyme chiffré.', img: '/kyc.png' },
+    { num: '01', title: 'Vérification KYC',   desc: 'Votre identité est vérifiée puis transformée en pseudonyme chiffré.', img: '/Explainer_video_about_KYC_secu.mp4' },
     { num: '02', title: 'Rejoignez un Groupe', desc: 'L\'IA recommande les communautés qui correspondent à vos besoins.',   img: '/groupe.png' },
     { num: '03', title: 'Cotisez & Protégez',  desc: 'Alimentez la cagnotte. En cas de coup dur, la communauté valide et indemnise.', img: '/illustration.png' },
   ];
@@ -122,7 +122,7 @@ export const LandingPage = ({ navigate }) => {
                 <Btn variant="primary" onClick={() => navigate('/register')}>
                   Créer mon compte gratuitement <ArrowRight size={15} />
                 </Btn>
-                <Btn variant="secondary" onClick={() => navigate('/#how-it-works')}>
+                <Btn variant="secondary" onClick={() => navigate('/how-it-works')}>
                   Découvrir le fonctionnement
                 </Btn>
               </motion.div>
@@ -190,11 +190,11 @@ export const LandingPage = ({ navigate }) => {
               >
                 {/* Step image */}
                 <div style={{ height: '180px', overflow: 'hidden', position: 'relative' }}>
-                  <img
-                    src={step.img}
-                    alt={step.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75, filter: 'grayscale(20%)' }}
-                  />
+                  {step.img.endsWith('.mp4') ? (
+                    <video src={step.img} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75, filter: 'grayscale(20%)' }} />
+                  ) : (
+                    <img src={step.img} alt={step.title} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75, filter: 'grayscale(20%)' }} />
+                  )}
                   {/* Gold tint overlay */}
                   <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 40%, var(--ink-90) 100%)' }} />
                 </div>
@@ -224,9 +224,9 @@ export const LandingPage = ({ navigate }) => {
               </h2>
             </div>
             <div style={{ position: 'relative', height: '260px', overflow: 'hidden', border: '1px solid var(--gold-line)' }}>
-              <img
-                src="/illustration.png"
-                alt="TrustPool technologie"
+              <video
+                src="/Product_demo_animation_showing.mp4"
+                autoPlay loop muted playsInline
                 style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8, filter: 'grayscale(10%)' }}
               />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(12,12,12,0.5), transparent)' }} />

@@ -1,8 +1,35 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Bell, LogOut, CheckCheck } from 'lucide-react';
+import { Menu, X, Bell, LogOut, CheckCheck, Shield, Users, Wallet, AlertTriangle, UserCheck, Eye, Lock, Sparkles } from 'lucide-react';
 import { Btn } from './ui.jsx';
 import { api } from './api.js';
+
+/* ── Notification type config ── */
+const NOTIF_CONFIG = {
+  welcome:       { icon: Sparkles, color: '#c8a96e', label: 'Bienvenue',    route: '/dashboard' },
+  kyc:           { icon: Shield,   color: '#7FC9A0', label: 'KYC',          route: '/kyc' },
+  kyc_approved:  { icon: Shield,   color: '#7FC9A0', label: 'KYC',          route: '/dashboard' },
+  kyc_rejected:  { icon: Shield,   color: '#E08888', label: 'KYC',          route: '/kyc' },
+  adhesion:      { icon: Users,    color: '#8BB8E8', label: 'Adhésion',     route: '/groups' },
+  cotisation:    { icon: Wallet,   color: '#c8a96e', label: 'Cotisation',   route: '/groups' },
+  sinistre:      { icon: AlertTriangle, color: '#E08888', label: 'Sinistre', route: '/claims' },
+  claim_submitted: { icon: AlertTriangle, color: '#E0A870', label: 'Sinistre', route: '/claims' },
+  fraude:        { icon: Eye,      color: '#E08888', label: 'Fraude',       route: '/dashboard' },
+  anonymat:      { icon: Lock,     color: '#8BB8E8', label: 'Anonymat',     route: '/dashboard' },
+};
+const DEFAULT_CONFIG = { icon: Bell, color: 'var(--paper-dim)', label: 'Notification', route: '/dashboard' };
+
+/* ── Relative time helper ── */
+const timeAgo = (dateStr) => {
+  const now = new Date();
+  const d = new Date(dateStr);
+  const diff = Math.floor((now - d) / 1000);
+  if (diff < 60) return 'À l\'instant';
+  if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} min`;
+  if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)}h`;
+  if (diff < 172800) return 'Hier';
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+};
 
 export const Navbar = ({ currentPath, navigate, user, logout }) => {
   const [open, setOpen] = useState(false);
@@ -28,13 +55,20 @@ export const Navbar = ({ currentPath, navigate, user, logout }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
+  /* Fetch unread count + polling every 30s */
+  const fetchUnread = useCallback(() => {
     if (user) {
       api.getNotifications(true)
         .then(res => setUnreadCount(res.length))
-        .catch(err => console.error('Failed to load notifications:', err));
+        .catch(() => {});
     }
   }, [user]);
+
+  useEffect(() => {
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, [fetchUnread]);
 
   const toggleNotifications = async () => {
     if (!showNotifications) {
@@ -56,6 +90,19 @@ export const Navbar = ({ currentPath, navigate, user, logout }) => {
     } catch (e) {
       console.error('Error marking all as read:', e);
     }
+  };
+
+  const handleNotifClick = async (notif) => {
+    if (!notif.lu) {
+      try {
+        await api.markNotificationRead(notif.id);
+        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, lu: true } : n));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      } catch (e) {}
+    }
+    const cfg = NOTIF_CONFIG[notif.type] || DEFAULT_CONFIG;
+    setShowNotifications(false);
+    navigate(cfg.route);
   };
 
   const [avatarStr, setAvatarStr] = useState(null);
@@ -188,25 +235,54 @@ export const Navbar = ({ currentPath, navigate, user, logout }) => {
                           </button>
                         )}
                       </div>
-                      <div style={{ maxHeight: 300, overflowY: 'auto', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div style={{ maxHeight: 340, overflowY: 'auto', padding: '0.25rem' }}>
                         {notifications.length === 0 ? (
-                          <p style={{ textAlign: 'center', color: 'var(--paper-dim)', padding: '1rem 0', fontSize: '0.875rem' }}>Aucune notification</p>
+                          <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--paper-dim)' }}>
+                            <Bell size={28} style={{ margin: '0 auto 0.75rem', opacity: 0.2, display: 'block' }} />
+                            <p style={{ fontSize: '0.875rem' }}>Aucune notification</p>
+                          </div>
                         ) : (
-                          notifications.map(n => (
-                            <div key={n.id} style={{
-                              padding: '0.75rem', borderRadius: 8,
-                              background: n.lu ? 'transparent' : 'rgba(200,169,110,0.05)',
-                              border: n.lu ? '1px solid transparent' : '1px solid var(--gold-dim)',
-                              display: 'flex', flexDirection: 'column', gap: '0.25rem'
-                            }}>
-                              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--paper)' }}>{n.message}</p>
-                              <span style={{ fontSize: '0.75rem', color: 'var(--paper-dim)' }}>
-                                {new Date(n.created_at).toLocaleString('fr-FR', {
-                                  day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
-                                })}
-                              </span>
-                            </div>
-                          ))
+                          notifications.map((n, i) => {
+                            const cfg = NOTIF_CONFIG[n.type] || DEFAULT_CONFIG;
+                            const Icon = cfg.icon;
+                            return (
+                              <div
+                                key={n.id}
+                                onClick={() => handleNotifClick(n)}
+                                style={{
+                                  padding: '0.75rem 0.875rem', borderRadius: 8, cursor: 'pointer',
+                                  background: n.lu ? 'transparent' : 'rgba(200,169,110,0.04)',
+                                  display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
+                                  borderBottom: i < notifications.length - 1 ? '1px solid rgba(240,237,230,0.04)' : 'none',
+                                  transition: 'background 0.15s',
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(200,169,110,0.08)'}
+                                onMouseLeave={e => e.currentTarget.style.background = n.lu ? 'transparent' : 'rgba(200,169,110,0.04)'}
+                              >
+                                <div style={{
+                                  width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                                  background: `${cfg.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  marginTop: '0.1rem',
+                                }}>
+                                  <Icon size={14} color={cfg.color} />
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                                    <span style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: cfg.color, fontWeight: 600 }}>
+                                      {cfg.label}
+                                    </span>
+                                    {!n.lu && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gold)', flexShrink: 0 }} />}
+                                  </div>
+                                  <p style={{ margin: 0, fontSize: '0.8125rem', color: n.lu ? 'var(--paper-dim)' : 'var(--paper)', fontWeight: n.lu ? 400 : 500, lineHeight: 1.4 }}>
+                                    {n.contenu}
+                                  </p>
+                                  <span style={{ fontSize: '0.6875rem', color: 'rgba(240,237,230,0.3)', marginTop: '0.25rem', display: 'block' }}>
+                                    {timeAgo(n.created_at)}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })
                         )}
                       </div>
                     </motion.div>

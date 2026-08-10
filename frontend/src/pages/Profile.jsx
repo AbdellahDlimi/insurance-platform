@@ -132,8 +132,11 @@ export const ProfilePage = ({ user, navigate, setUser }) => {
 
   if (!user) return null;
 
-  const kycColor = user.kyc_status === 'verified' ? '#7FC9A0' : '#E0A870';
-  const kycLabel = user.kyc_status === 'verified' ? 'Vérifié' : 'En attente';
+  const isComplianceTeam = user.role === 'admin_plateforme';
+  const isKycVerified = user.kyc_status === 'verified' || isComplianceTeam;
+
+  const kycColor = isKycVerified ? '#7FC9A0' : '#E0A870';
+  const kycLabel = isKycVerified ? (isComplianceTeam ? 'Vérifié (Conformité)' : 'Vérifié') : 'En attente';
 
   return (
     <motion.div {...pageVariants} style={{ paddingTop: '6rem', paddingBottom: '4rem' }}>
@@ -238,7 +241,7 @@ export const ProfilePage = ({ user, navigate, setUser }) => {
                       <span style={{ fontSize: '0.8125rem', color: 'var(--paper-dim)' }}>
                         KYC : <span style={{ color: kycColor, fontWeight: 600 }}>{kycLabel}</span>
                       </span>
-                      {user.kyc_status !== 'verified' && (
+                      {!isKycVerified && (
                         <button onClick={() => navigate('/kyc')} style={{ background: 'none', border: '1px solid var(--warning)', borderRadius: 2, padding: '0.1rem 0.5rem', color: 'var(--warning)', fontSize: '0.6875rem', cursor: 'pointer' }}>
                           Vérifier
                         </button>

@@ -52,7 +52,11 @@ const TimelineStep = ({ num, icon: Icon, title, desc, detail, img, reverse = fal
       )}
       {reverse && img && (
         <div style={{ height: '100%', minHeight: '220px', overflow: 'hidden', position: 'relative' }}>
-          <img src={img} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75, filter: 'grayscale(15%)' }} />
+          {img.endsWith('.mp4') ? (
+            <video src={img} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75, filter: 'grayscale(15%)' }} />
+          ) : (
+            <img src={img} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75, filter: 'grayscale(15%)' }} />
+          )}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, var(--ink-90) 0%, transparent 60%)' }} />
         </div>
       )}
@@ -96,7 +100,11 @@ const TimelineStep = ({ num, icon: Icon, title, desc, detail, img, reverse = fal
       )}
       {!reverse && img && (
         <div style={{ height: '100%', minHeight: '220px', overflow: 'hidden', position: 'relative' }}>
-          <img src={img} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75, filter: 'grayscale(15%)' }} />
+          {img.endsWith('.mp4') ? (
+            <video src={img} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75, filter: 'grayscale(15%)' }} />
+          ) : (
+            <img src={img} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75, filter: 'grayscale(15%)' }} />
+          )}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to left, var(--ink-90) 0%, transparent 60%)' }} />
         </div>
       )}
@@ -151,7 +159,7 @@ export const HowItWorksPage = ({ navigate }) => {
         'Pseudonyme généré automatiquement',
         'Levée d\'anonymat uniquement en cas de fraude avérée',
       ],
-      img: '/kyc.png',
+      img: '/Explainer_video_about_KYC_secu.mp4',
       reverse: false,
     },
     {
@@ -179,7 +187,7 @@ export const HowItWorksPage = ({ navigate }) => {
         '15 % des cotisations allouées au Buffer Pool',
         'Visualisation en direct de la cagnotte',
       ],
-      img: '/illustration.png',
+      img: '/Product_demo_animation_showing.mp4',
       reverse: false,
     },
     {
@@ -207,7 +215,7 @@ export const HowItWorksPage = ({ navigate }) => {
         'Virement automatisé sur validation',
         'Historique complet et auditable',
       ],
-      img: '/illustration.png',
+      img: '/Financial_dashboard_animation.mp4',
       reverse: false,
     },
   ];

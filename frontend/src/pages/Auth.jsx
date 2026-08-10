@@ -37,7 +37,7 @@ export const AuthPage = ({ type, navigate, user, setUser }) => {
         const isAdmin = res.user.role === 'admin_plateforme';
         setUser({
           ...res.user,
-          kyc_status:          kyc.statut_verification === 'verified' ? 'verified' : 'pending',
+          kyc_status:          kyc.statut_verification,
           onboarding_complete: onboarding.onboarding_complete,
         });
         if (isAdmin) {
@@ -48,7 +48,7 @@ export const AuthPage = ({ type, navigate, user, setUser }) => {
       } else {
         await api.register(email, password, pseudonyme);
         const res = await api.login(email, password);
-        setUser({ ...res.user, kyc_status: 'pending', onboarding_complete: false });
+        setUser({ ...res.user, kyc_status: 'none', onboarding_complete: false });
         navigate('/onboarding');
       }
     } catch (err) {

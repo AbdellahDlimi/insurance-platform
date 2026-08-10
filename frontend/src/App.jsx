@@ -58,7 +58,7 @@ const NotFound = ({ navigate }) => (
 
 /* ── Root App ── */
 export default function App() {
-  const [currentPath, setCurrentPath] = useState('/');
+  const [currentPath, setCurrentPath] = useState(window.location.pathname + window.location.search);
   const [user, setUser]               = useState(null);
   const [pendingCount, setPendingCount] = useState(0);
 
@@ -82,7 +82,13 @@ export default function App() {
           api.getAdminPendingRequests().then(reqs => setPendingCount(reqs.length)).catch(() => {});
         }
         
-        if (userData.role === 'admin_plateforme') {
+        // Respect the current URL if it's a payment callback from Stripe
+        const browserPath = window.location.pathname;
+        const isPaymentCallback = browserPath.startsWith('/payment/');
+        
+        if (isPaymentCallback) {
+          setCurrentPath(browserPath + window.location.search);
+        } else if (userData.role === 'admin_plateforme') {
           setCurrentPath('/admin/dashboard');
         } else {
           setCurrentPath(onboarding.onboarding_complete ? '/dashboard' : '/onboarding');
@@ -110,13 +116,13 @@ export default function App() {
   const renderRoute = () => {
     const PROTECTED = ['/dashboard', '/kyc', '/claims', '/claims/new', '/groups', '/onboarding', '/profile', '/admin/dashboard', '/admin/kyc'];
     
-    // Strip query params for route matching
-    const basePath = currentPath.split('?')[0];
+    // Strip query params and hash fragments for route matching
+    const basePath = currentPath.split('?')[0].split('#')[0];
 
     if (PROTECTED.includes(basePath) && !user) {
       return <AuthPage type="login" navigate={navigate} user={user} setUser={setUser} />;
     }
-    if (user && user.role !== 'admin_plateforme' && !user.onboarding_complete && basePath !== '/onboarding') {
+    if (user && user.role !== 'admin_plateforme' && !user.onboarding_complete && basePath !== '/onboarding' && !basePath.startsWith('/payment/')) {
       return <OnboardingPage navigate={navigate} user={user} setUser={setUser} />;
     }
     if (basePath.startsWith('/groups/')) {

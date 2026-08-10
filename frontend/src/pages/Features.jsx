@@ -78,7 +78,7 @@ export const FeaturesPage = ({ navigate }) => {
     securite: {
       headline: 'Votre identité, inviolable.',
       sub: 'TrustPool utilise un chiffrement à deux niveaux — vos données personnelles ne sont jamais exposées, même à nos équipes.',
-      img: '/kyc.png',
+      img: '/Explainer_video_about_KYC_secu.mp4',
       points: [
         { icon: Lock,       title: 'Chiffrement enveloppe KMS',        desc: 'Vos données KYC réelles (nom, date de naissance, pièce d\'identité) sont chiffrées via AWS KMS. Seule une clé maître, protégée par HSM, peut les déchiffrer dans un contexte légal strict.' },
         { icon: Shield,     title: 'Pseudonyme permanent',              desc: 'Un pseudonyme généré cryptographiquement vous est attribué à l\'inscription. Toutes vos interactions sur la plateforme utilisent ce pseudonyme — y compris pour les autres membres de votre groupe.' },
@@ -89,7 +89,7 @@ export const FeaturesPage = ({ navigate }) => {
     ia: {
       headline: 'L\'IA au service de la communauté.',
       sub: 'Trois modèles d\'IA spécialisés travaillent en coulisse pour protéger votre groupe, optimiser vos cotisations et vous guider.',
-      img: '/illustration.png',
+      img: '/Product_demo_animation_showing.mp4',
       points: [
         { icon: Brain,      title: 'Matchmaker — Recommandations de Groupes', desc: 'Un modèle de filtrage collaboratif analyse votre profil (âge, situation pro, intérêts, budget) et calcule un score de compatibilité avec chaque groupe disponible. Vous voyez directement les groupes les plus pertinents.' },
         { icon: Search,     title: 'Chien de Garde — Détection de Fraude',    desc: 'Notre modèle Isolation Forest analyse en temps réel chaque déclaration de sinistre. Il détecte les anomalies de montant, de fréquence et de comportement réseau. Toute anomalie génère une alerte immédiate.' },
@@ -100,7 +100,7 @@ export const FeaturesPage = ({ navigate }) => {
     transparence: {
       headline: 'Chaque euro est traçable.',
       sub: 'La cagnotte, le Buffer Pool, les sinistres — tout est visible, en temps réel, par chaque membre du groupe.',
-      img: '/groupe.png',
+      img: '/Financial_dashboard_animation.mp4',
       points: [
         { icon: BarChart2,   title: 'Dashboard Financier en Temps Réel',  desc: 'Visualisez à tout moment la cagnotte principale, le Buffer Pool de sécurité (15 % des cotisations), les entrées et sorties du mois. Aucun euro ne disparaît sans trace.' },
         { icon: FileText,    title: 'Historique Complet et Auditable',    desc: 'Chaque cotisation, chaque sinistre approuvé, chaque indemnisation versée est enregistrée dans un journal horodaté. L\'Admin et les membres peuvent consulter l\'historique complet du groupe.' },
@@ -199,7 +199,11 @@ export const FeaturesPage = ({ navigate }) => {
                 {current.sub}
               </p>
               <div style={{ height: '260px', overflow: 'hidden', border: '1px solid var(--gold-line)', position: 'relative' }}>
-                <img src={current.img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75, filter: 'grayscale(10%)' }} />
+                {current.img.endsWith('.mp4') ? (
+                  <video src={current.img} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75, filter: 'grayscale(10%)' }} />
+                ) : (
+                  <img src={current.img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75, filter: 'grayscale(10%)' }} />
+                )}
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 50%, var(--ink-90))' }} />
               </div>
             </div>

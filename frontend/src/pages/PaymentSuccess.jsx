@@ -1,9 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2 } from 'lucide-react';
 import { Btn, Card, pageVariants } from '../ui.jsx';
+import { api } from '../api.js';
 
 export const PaymentSuccess = ({ navigate }) => {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const cotisationId = params.get('cotisation_id');
+    if (cotisationId) {
+      api.payCotisation(cotisationId).catch(console.error);
+    }
+  }, []);
   return (
     <motion.div {...pageVariants} style={{ paddingTop: '8rem', paddingBottom: '4rem', display: 'flex', justifyContent: 'center' }}>
       <Card style={{ maxWidth: '400px', textAlign: 'center', background: 'var(--ink-90)' }}>
