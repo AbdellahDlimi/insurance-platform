@@ -1,46 +1,26 @@
-from uuid import UUID
 from datetime import datetime
+from decimal import Decimal
+from uuid import UUID
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
-
-class CreateCheckoutSessionRequest(BaseModel):
+class PaymentOut(BaseModel):
+    id: UUID
+    user_id: UUID
     group_id: UUID
-    amount: Optional[float] = None
-    currency: Optional[str] = "eur"
-
-
-class CreatePaymentIntentRequest(BaseModel):
-    group_id: UUID
-    amount: Optional[float] = None
-    currency: Optional[str] = "eur"
-
-
-class CheckoutSessionResponse(BaseModel):
-    payment_id: str
-    checkout_url: str
-    status: str
-
-
-class PaymentIntentResponse(BaseModel):
-    payment_id: str
-    client_secret: str
-    amount: float
-    currency: str
-    status: str
-
-
-class PaymentResponse(BaseModel):
-    id: str
-    user_id: str
-    group_id: str
-    amount: float
+    cotisation_id: Optional[UUID] = None
+    amount: Decimal
     currency: str
     status: str
     stripe_session_id: Optional[str] = None
     stripe_payment_intent_id: Optional[str] = None
-    created_at: datetime
+    created_at: Optional[datetime] = None
     paid_at: Optional[datetime] = None
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = {"from_attributes": True}
 
+class CheckoutSessionOut(BaseModel):
+    payment_id: UUID
+    checkout_url: str
+    url: str  # For backward compatibility with existing front-end calls
+    status: str

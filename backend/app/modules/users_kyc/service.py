@@ -7,10 +7,11 @@ import secrets
 import string
 import threading
 import uuid
-import time
+import os
+import shutil
 from datetime import datetime, timezone
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, BackgroundTasks, UploadFile
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -21,20 +22,28 @@ from app.modules.users_kyc import repository
 from app.modules.users_kyc.models import Utilisateur, CoffreKYC
 from app.modules.users_kyc.schemas import UserCreate, UserLogin, TokenResponse, KYCSubmit, KYCStatusOut
 from app.modules.users_kyc.events import produce_kyc_verified
+from app.modules.notifications.service import NotificationService
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def _generer_pseudonyme() -> str:
+def _generer_pseudonyme(base_name: str) -> str:
     """
-    Génère un pseudonyme aléatoire non réversible — c'est ce pseudonyme,
-    pas le vrai nom, qui est visible par les autres membres du groupe.
+    Génère un pseudonyme en ajoutant un suffixe aléatoire pour éviter
+    les doublons tout en gardant le nom choisi par l'utilisateur.
     """
-    suffixe = "".join(secrets.choice(string.digits) for _ in range(6))
-    return f"membre_{suffixe}"
+    suffixe = "".join(secrets.choice(string.digits) for _ in range(4))
+    # Nettoyer les espaces ou caractères bizarres du nom de base si nécessaire
+    clean_name = base_name.strip().replace(" ", "")
+    return f"{clean_name}#{suffixe}"
 
 
-def register_user(db: Session, data: UserCreate) -> Utilisateur:
+def register_user(
+    db: Session, 
+    data: UserCreate, 
+    notification_service: NotificationService,
+    background_tasks: BackgroundTasks
+) -> Utilisateur:
     if repository.get_user_by_email(db, data.email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -42,60 +51,67 @@ def register_user(db: Session, data: UserCreate) -> Utilisateur:
         )
 
     mot_de_passe_hash = pwd_context.hash(data.mot_de_passe)
-    pseudonyme = _generer_pseudonyme()
+    pseudonyme = _generer_pseudonyme(data.pseudonyme)
 
-    return repository.create_user(
+    user = repository.create_user(
         db, email=data.email, mot_de_passe_hash=mot_de_passe_hash, pseudonyme=pseudonyme
     )
+    
+    notification_service.notify_welcome(
+        session=db,
+        user_id=user.id,
+        email=user.email,
+        pseudonyme=user.pseudonyme,
+        background_tasks=background_tasks
+    )
+    
+    return user
 
 
 def login_user(db: Session, data: UserLogin) -> TokenResponse:
     user = repository.get_user_by_email(db, data.email)
-    if not user or not pwd_context.verify(data.mot_de_passe, user.mot_de_passe_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email ou mot de passe incorrect",
-        )
+    if user:
+        if not pwd_context.verify(data.mot_de_passe, user.mot_de_passe_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Email ou mot de passe incorrect",
+            )
+        payload = TokenPayload(user_id=str(user.id), role=user.role, group_ids=[])
+    else:
+        agent = repository.get_agent_by_email(db, data.email)
+        if agent and pwd_context.verify(data.mot_de_passe, agent.mot_de_passe_hash):
+            payload = TokenPayload(user_id=str(agent.id), role="admin_plateforme", group_ids=[])
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Email ou mot de passe incorrect",
+            )
 
-    payload = TokenPayload(user_id=str(user.id), role=user.role, group_ids=[])
     return TokenResponse(
         access_token=create_access_token(payload),
         refresh_token=create_refresh_token(payload),
     )
 
 
-def _valider_kyc_mock(db_session_factory, user_id: uuid.UUID) -> None:
-    """
-    Simule la validation du KYC après un délai de 5 secondes.
-    Met à jour la base de données et publie l'événement Kafka.
-    """
-    time.sleep(5)
-    db = db_session_factory()
-    try:
-        now = datetime.now(timezone.utc)
-        repository.update_kyc_status(
-            db,
-            utilisateur_id=user_id,
-            statut_verification="verified",
-            verifie_le=now,
-        )
-        produce_kyc_verified(user_id, "verified", now)
-    except Exception as e:
-        print(f"Erreur lors de la validation KYC mockée: {e}")
-    finally:
-        db.close()
+def _valider_kyc_mock(db_session_factory, user_id):
+    pass
 
 
-def submit_kyc(db: Session, db_session_factory, user_id: uuid.UUID, data: KYCSubmit) -> CoffreKYC:
+def submit_kyc(db: Session, user_id: uuid.UUID, data: dict, file: UploadFile) -> CoffreKYC:
     """
-    Chiffre les données KYC en utilisant Fernet (KMS) et les enregistre.
-    Déclenche ensuite une validation mockée asynchrone.
+    Chiffre les données KYC en utilisant Fernet (KMS) et enregistre le fichier.
     """
+    # Enregistrement du fichier
+    upload_dir = f"uploads/kyc/{user_id}"
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = os.path.join(upload_dir, file.filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
     kyc_data = {
-        "nom_complet": data.nom_complet,
-        "date_naissance": data.date_naissance,
-        "numero_document": data.numero_document,
-        "type_document": data.type_document,
+        "nom_complet": data.get("nom_complet"),
+        "date_naissance": data.get("date_naissance"),
+        "type_document": data.get("type_document"),
     }
     
     # Sérialisation et chiffrement
@@ -108,15 +124,72 @@ def submit_kyc(db: Session, db_session_factory, user_id: uuid.UUID, data: KYCSub
         utilisateur_id=user_id,
         donnees_chiffrees=donnees_chiffrees,
         ref_cle_kms="fernet_key",
-        fournisseur_api=data.fournisseur_api,
-        statut_verification="pending"
+        fournisseur_api="Manual",
+        statut_verification="pending",
+        document_url=file_path
     )
     
-    # Simulation d'une vérification asynchrone externe
-    thread = threading.Thread(target=_valider_kyc_mock, args=(db_session_factory, user_id))
-    thread.start()
-    
+    # Instant KYC validation mock for tests (asynchronous)
+    if _valider_kyc_mock:
+        t = threading.Thread(target=_valider_kyc_mock, args=(None, user_id))
+        t.start()
+        
     return coffre
+
+
+def review_kyc(
+    db: Session,
+    kyc_id: uuid.UUID,
+    statut: str,
+    commentaire: str | None,
+    admin_id: uuid.UUID,
+    notification_service: NotificationService | None = None,
+    background_tasks: BackgroundTasks | None = None
+) -> CoffreKYC:
+    """
+    Validation manuelle du KYC par un agent de conformité.
+    """
+    coffre = repository.get_kyc_by_id(db, kyc_id)
+    if not coffre:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="KYC non trouvé",
+        )
+    
+    now = datetime.now(timezone.utc)
+    updated_coffre = repository.update_kyc_status(
+        db,
+        utilisateur_id=coffre.utilisateur_id,
+        statut_verification=statut,
+        verifie_le=now,
+        verifie_par_agent_id=admin_id,
+        commentaire_review=commentaire
+    )
+    
+    user = repository.get_user_by_id(db, coffre.utilisateur_id)
+
+    if statut == "verified":
+        produce_kyc_verified(coffre.utilisateur_id, "verified", now)
+        if notification_service and user:
+            notification_service.notify_kyc_approved(
+                session=db,
+                user_id=user.id,
+                email=user.email,
+                pseudonyme=user.pseudonyme,
+                background_tasks=background_tasks
+            )
+    elif statut == "failed":
+        if notification_service and user:
+            notification_service.notify_kyc_rejected(
+                session=db,
+                user_id=user.id,
+                email=user.email,
+                pseudonyme=user.pseudonyme,
+                reason=commentaire or "Non spécifié",
+                background_tasks=background_tasks
+            )
+        
+    return updated_coffre
 
 
 def get_kyc_status(db: Session, user_id: uuid.UUID) -> CoffreKYC:
@@ -207,3 +280,18 @@ def process_anonymity_lift_approved(db: Session, payload: dict) -> None:
     )
     db.commit()
     print(f"[KYC-KMS] Anonymity lifted for user {utilisateur_cible_id}. Nom complet en mémoire: {donnees_claires.get('nom_complet')}")
+
+def submit_onboarding(db: Session, user_id: uuid.UUID, data: dict):
+    """Soumet le profil onboarding et marque l'utilisateur comme onboardé."""
+    profil = repository.create_profil_onboarding(db, user_id, data)
+    repository.update_user_onboarding_status(db, user_id, complete=True)
+    return profil
+
+def get_onboarding_status(db: Session, user_id: uuid.UUID):
+    profil = repository.get_profil_onboarding(db, user_id)
+    if not profil:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Le profil d'onboarding n'a pas encore été complété."
+        )
+    return profil

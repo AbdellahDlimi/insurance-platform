@@ -40,19 +40,15 @@ def create_claim(
 # ── Lecture ───────────────────────────────────────────────────────────────────
 
 @router.get(
-    "/{sinistre_id}",
-    response_model=ClaimResponse,
-    summary="Récupérer un sinistre par ID",
+    "/me",
+    response_model=list[ClaimResponse],
+    summary="Lister les sinistres de l'utilisateur courant",
 )
-def get_claim(
-    sinistre_id: UUID,
+def list_my_claims(
     current_user: TokenPayload = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
-    sinistre = service.get_sinistre(session, sinistre_id)
-    if not sinistre:
-        raise HTTPException(status_code=404, detail="Sinistre non trouvé")
-    return sinistre
+    return service.list_sinistres_utilisateur(session, UUID(current_user.user_id))
 
 
 @router.get(
@@ -66,6 +62,22 @@ def list_claims_by_group(
     session: Session = Depends(get_session),
 ):
     return service.list_sinistres_groupe(session, groupe_id)
+
+
+@router.get(
+    "/{sinistre_id}",
+    response_model=ClaimResponse,
+    summary="Récupérer un sinistre par ID",
+)
+def get_claim(
+    sinistre_id: UUID,
+    current_user: TokenPayload = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    sinistre = service.get_sinistre(session, sinistre_id)
+    if not sinistre:
+        raise HTTPException(status_code=404, detail="Sinistre non trouvé")
+    return sinistre
 
 
 # ── Pièces justificatives ───────────────────────────────────────────────────
@@ -121,11 +133,14 @@ def validate_claim(
     if sinistre.statut != "en_attente":
         raise HTTPException(status_code=400, detail="Ce sinistre a déjà été traité")
 
-    # Récupérer l'utilisateur déclarant via l'adhésion
+    from app.modules.groups.models import Adhesion
+    adhesion = session.query(Adhesion).filter(Adhesion.id == sinistre.adhesion_id).first()
+    utilisateur_id = adhesion.utilisateur_id if adhesion else UUID(current_user.user_id)
+
     return service.valider_sinistre(
         session, sinistre, data,
         admin_id=UUID(current_user.user_id),
-        utilisateur_id=UUID(current_user.user_id),
+        utilisateur_id=utilisateur_id,
     )
 
 
@@ -147,8 +162,12 @@ def reject_claim(
     if sinistre.statut != "en_attente":
         raise HTTPException(status_code=400, detail="Ce sinistre a déjà été traité")
 
+    from app.modules.groups.models import Adhesion
+    adhesion = session.query(Adhesion).filter(Adhesion.id == sinistre.adhesion_id).first()
+    utilisateur_id = adhesion.utilisateur_id if adhesion else UUID(current_user.user_id)
+
     return service.rejeter_sinistre(
         session, sinistre, data,
         admin_id=UUID(current_user.user_id),
-        utilisateur_id=UUID(current_user.user_id),
+        utilisateur_id=utilisateur_id,
     )

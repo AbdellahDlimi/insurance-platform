@@ -113,6 +113,51 @@ def get_members_by_group(db: Session, group_id: uuid.UUID) -> list[Adhesion]:
     ).all()
 
 
+def get_group_members_enriched(db: Session, group_id: uuid.UUID, admin_id: uuid.UUID) -> list[tuple]:
+    """Retourne les membres actifs d'un groupe avec leurs infos utilisateur.
+    Chaque élément est un tuple (Adhesion, Utilisateur)."""
+    from app.modules.users_kyc.models import Utilisateur, ProfilOnboarding
+    return (
+        db.query(Adhesion, Utilisateur, ProfilOnboarding)
+        .join(Utilisateur, Utilisateur.id == Adhesion.utilisateur_id)
+        .outerjoin(ProfilOnboarding, ProfilOnboarding.utilisateur_id == Utilisateur.id)
+        .filter(Adhesion.groupe_id == group_id, Adhesion.statut == "active")
+        .order_by(Adhesion.date_adhesion)
+        .all()
+    )
+
+
 def get_join_requests_by_group(db: Session, group_id: uuid.UUID) -> list[DemandeAdhesion]:
     return db.query(DemandeAdhesion).filter(DemandeAdhesion.groupe_id == group_id).all()
+
+
+def get_pending_requests_by_group(db: Session, group_id: uuid.UUID) -> list[DemandeAdhesion]:
+    """Retourne uniquement les demandes en_attente pour un groupe."""
+    return db.query(DemandeAdhesion).filter(
+        DemandeAdhesion.groupe_id == group_id,
+        DemandeAdhesion.statut == "en_attente",
+    ).all()
+
+
+def get_all_pending_requests_for_admin(db: Session, admin_id: uuid.UUID) -> list[tuple]:
+    """Retourne toutes les demandes en_attente pour tous les groupes administrés par admin_id.
+    Chaque élément est un tuple (DemandeAdhesion, Groupe, Utilisateur)."""
+    from app.modules.users_kyc.models import Utilisateur
+    return (
+        db.query(DemandeAdhesion, Groupe, Utilisateur)
+        .join(Groupe, Groupe.id == DemandeAdhesion.groupe_id)
+        .join(Utilisateur, Utilisateur.id == DemandeAdhesion.utilisateur_id)
+        .filter(
+            Groupe.admin_id == admin_id,
+            DemandeAdhesion.statut == "en_attente",
+        )
+        .order_by(DemandeAdhesion.date_demande.desc())
+        .all()
+    )
+
+def get_adhesions_by_user(db: Session, user_id: uuid.UUID) -> list[Adhesion]:
+    return db.query(Adhesion).filter(
+        Adhesion.utilisateur_id == user_id,
+        Adhesion.statut == "active"
+    ).all()
 

@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 class GroupCreate(BaseModel):
@@ -38,6 +39,19 @@ class JoinRequestOut(BaseModel):
     score_compatibilite: float | None
     statut: str
     date_demande: datetime
+    # Champs enrichis (non présents dans le modèle ORM, peuplés manuellement)
+    pseudonyme_demandeur: Optional[str] = None
+
+
+class PendingRequestOut(BaseModel):
+    """Résumé d'une demande en attente pour le tableau de bord admin."""
+    id: uuid.UUID
+    utilisateur_id: uuid.UUID
+    groupe_id: uuid.UUID
+    nom_groupe: str
+    pseudonyme_demandeur: str
+    score_compatibilite: Optional[float] = None
+    date_demande: datetime
 
 
 class AdhesionOut(BaseModel):
@@ -50,6 +64,23 @@ class AdhesionOut(BaseModel):
     coefficient_actuel: float
     nb_sinistres_periode: int
     date_adhesion: datetime
+
+
+class MemberOut(BaseModel):
+    """Adhésion enrichie avec les infos publiques du membre."""
+    utilisateur_id: uuid.UUID
+    pseudonyme: str
+    statut: str
+    coefficient_actuel: float
+    nb_sinistres_periode: int
+    date_adhesion: datetime
+    is_admin: bool = False
+    has_paid_current_month: bool = False
+    tranche_age: Optional[str] = None
+    situation_pro: Optional[str] = None
+    region: Optional[str] = None
+    niveau_risque: Optional[str] = None
+    interets_assurance: Optional[list[str]] = None
 
 
 class AdhesionValidate(BaseModel):

@@ -19,7 +19,8 @@ def declare_sinistre(
     """
     Déclare un nouveau sinistre :
     1. Insère en base (statut = en_attente)
-    2. Émet l'event Kafka 'claim.created'
+    2. Crée une notification in-app pour l'utilisateur
+    3. Émet l'event Kafka 'claim.created'
     """
     sinistre = repository.create_sinistre(
         session,
@@ -28,6 +29,17 @@ def declare_sinistre(
         description=data.description,
         montant_declare=data.montant_declare,
     )
+
+    try:
+        from app.modules.notifications.repository import create_notification
+        create_notification(
+            session,
+            utilisateur_id=utilisateur_id,
+            n_type="claim_submitted",
+            contenu=f"Votre sinistre d'un montant de {sinistre.montant_declare} € a bien été enregistré.",
+        )
+    except Exception as e:
+        print(f"[Claims Notification Warning] {e}")
 
     events.emit_claim_created(
         sinistre_id=sinistre.id,
@@ -51,6 +63,21 @@ def list_sinistres_groupe(session: Session, groupe_id: UUID) -> list[Sinistre]:
     return repository.list_sinistres_by_groupe(session, groupe_id)
 
 
+def list_sinistres_utilisateur(session: Session, utilisateur_id: UUID) -> list[Sinistre]:
+    """Liste tous les sinistres d'un utilisateur (via ses adhésions)."""
+    # On importe localement pour éviter les imports circulaires
+    from app.modules.groups.repository import get_adhesions_by_user
+    
+    adhesions = get_adhesions_by_user(session, utilisateur_id)
+    sinistres = []
+    for adhesion in adhesions:
+        sinistres.extend(repository.list_sinistres_by_adhesion(session, adhesion.id))
+    
+    # Trier par date de déclaration décroissante
+    sinistres.sort(key=lambda s: s.date_declaration, reverse=True)
+    return sinistres
+
+
 def valider_sinistre(
     session: Session,
     sinistre: Sinistre,
@@ -61,15 +88,38 @@ def valider_sinistre(
     """
     Valide un sinistre (décision admin) :
     1. Met à jour le statut et le montant approuvé
-    2. Émet l'event Kafka 'claim.validated' (critique : déclenche le malus côté A)
+    2. Crée la notification in-app pour l'utilisateur
+    3. Émet l'event Kafka 'claim.validated'
     """
     sinistre = repository.update_sinistre(
         session,
         sinistre,
         statut="validee",
         montant_approuve=data.montant_approuve,
+        commentaire_validation=data.commentaire_validation,
         traite_par_admin_id=admin_id,
     )
+
+    # Débiter le montant approuvé de la cagnotte du groupe
+    try:
+        from app.modules.cagnotte.repository import debiter_cagnotte_par_groupe
+        debiter_cagnotte_par_groupe(session, sinistre.groupe_id, float(data.montant_approuve))
+    except Exception as e:
+        print(f"[Claims Warning] Impossible de débiter la cagnotte : {e}")
+
+    try:
+        from app.modules.notifications.repository import create_notification
+        msg = f"Votre sinistre a été approuvé ! Montant accordé : {sinistre.montant_approuve} €."
+        if data.commentaire_validation:
+            msg += f" Note : {data.commentaire_validation}"
+        create_notification(
+            session,
+            utilisateur_id=utilisateur_id,
+            n_type="sinistre",
+            contenu=msg,
+        )
+    except Exception as e:
+        print(f"[Claims Notification Warning] {e}")
 
     events.emit_claim_validated(
         sinistre_id=sinistre.id,
@@ -95,14 +145,27 @@ def rejeter_sinistre(
     """
     Rejette un sinistre (décision admin) :
     1. Met à jour le statut
-    2. Émet l'event Kafka 'claim.rejected'
+    2. Crée la notification in-app pour l'utilisateur
+    3. Émet l'event Kafka 'claim.rejected'
     """
     sinistre = repository.update_sinistre(
         session,
         sinistre,
         statut="rejetee",
+        motif_rejet=data.motif,
         traite_par_admin_id=admin_id,
     )
+
+    try:
+        from app.modules.notifications.repository import create_notification
+        create_notification(
+            session,
+            utilisateur_id=utilisateur_id,
+            n_type="sinistre",
+            contenu=f"Votre sinistre a été refusé. Motif : {data.motif}",
+        )
+    except Exception as e:
+        print(f"[Claims Notification Warning] {e}")
 
     events.emit_claim_rejected(
         sinistre_id=sinistre.id,

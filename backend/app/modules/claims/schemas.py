@@ -31,6 +31,8 @@ class ClaimResponse(BaseModel):
     montant_declare: Decimal
     montant_approuve: Optional[Decimal] = None
     statut: str
+    motif_rejet: Optional[str] = None
+    commentaire_validation: Optional[str] = None
     score_fraude: Optional[Decimal] = None
     resume_ia: Optional[str] = None
     date_declaration: datetime
@@ -42,6 +44,7 @@ class ClaimResponse(BaseModel):
 class ClaimValidate(BaseModel):
     """Payload pour qu'un admin valide un sinistre."""
     montant_approuve: Decimal = Field(..., gt=0)
+    commentaire_validation: Optional[str] = None
 
 
 class ClaimReject(BaseModel):

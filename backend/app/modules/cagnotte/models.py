@@ -25,3 +25,4 @@ class Cotisation(Base):
     montant_final = Column(Numeric(12, 2), nullable=False)
     statut_paiement = Column(String(50), nullable=False, default="en_attente")  # en_attente / paye
     paye_le = Column(DateTime(timezone=True), nullable=True)
+    periode = Column(String(20), nullable=True)

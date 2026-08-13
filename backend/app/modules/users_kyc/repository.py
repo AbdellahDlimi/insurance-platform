@@ -5,7 +5,7 @@ Aucune logique métier ici — uniquement des opérations CRUD.
 import uuid
 from datetime import datetime
 from sqlalchemy.orm import Session
-from app.modules.users_kyc.models import Utilisateur, CoffreKYC
+from app.modules.users_kyc.models import Utilisateur, CoffreKYC, EquipeConformite
 
 
 def get_user_by_email(db: Session, email: str) -> Utilisateur | None:
@@ -14,6 +14,14 @@ def get_user_by_email(db: Session, email: str) -> Utilisateur | None:
 
 def get_user_by_id(db: Session, user_id: uuid.UUID) -> Utilisateur | None:
     return db.query(Utilisateur).filter(Utilisateur.id == user_id).first()
+
+
+def get_agent_by_email(db: Session, email: str) -> EquipeConformite | None:
+    return db.query(EquipeConformite).filter(EquipeConformite.email == email).first()
+
+
+def get_agent_by_id(db: Session, agent_id: uuid.UUID) -> EquipeConformite | None:
+    return db.query(EquipeConformite).filter(EquipeConformite.id == agent_id).first()
 
 
 def create_user(
@@ -36,7 +44,8 @@ def create_coffre_kyc(
     donnees_chiffrees: bytes,
     ref_cle_kms: str,
     fournisseur_api: str,
-    statut_verification: str = "pending"
+    statut_verification: str = "pending",
+    document_url: str = None
 ) -> CoffreKYC:
     # Delete existing KYC record if any to maintain 1-1 relationship
     db.query(CoffreKYC).filter(CoffreKYC.utilisateur_id == utilisateur_id).delete()
@@ -47,6 +56,7 @@ def create_coffre_kyc(
         ref_cle_kms=ref_cle_kms,
         fournisseur_api=fournisseur_api,
         statut_verification=statut_verification,
+        document_url=document_url
     )
     db.add(coffre)
     db.commit()
@@ -67,13 +77,76 @@ def update_kyc_status(
     utilisateur_id: uuid.UUID,
     statut_verification: str,
     verifie_le: datetime | None = None,
-    verifie_par_agent_id: uuid.UUID | None = None
+    verifie_par_agent_id: uuid.UUID | None = None,
+    commentaire_review: str | None = None
 ) -> CoffreKYC | None:
     coffre = get_kyc_by_user_id(db, utilisateur_id)
     if coffre:
         coffre.statut_verification = statut_verification
         coffre.verifie_le = verifie_le
         coffre.verifie_par_agent_id = verifie_par_agent_id
+        coffre.commentaire_review = commentaire_review
         db.commit()
         db.refresh(coffre)
     return coffre
+
+
+def get_all_pending_kyc(db: Session) -> list[CoffreKYC]:
+    return db.query(CoffreKYC).filter(CoffreKYC.statut_verification == "pending").all()
+
+
+def create_profil_onboarding(
+    db: Session, user_id: uuid.UUID, data: dict
+) -> "ProfilOnboarding":
+    from app.modules.users_kyc.models import ProfilOnboarding
+    # Delete existing if any
+    db.query(ProfilOnboarding).filter(ProfilOnboarding.utilisateur_id == user_id).delete()
+    
+    profil = ProfilOnboarding(
+        utilisateur_id=user_id,
+        tranche_age=data["tranche_age"],
+        situation_pro=data["situation_pro"],
+        interets_assurance=data["interets_assurance"],
+        budget_max_mensuel=data["budget_max_mensuel"],
+        niveau_risque=data["niveau_risque"],
+        region=data.get("region"),
+        situation_familiale=data.get("situation_familiale"),
+        nombre_personnes_a_charge=data.get("nombre_personnes_a_charge"),
+        couverture_existante=data.get("couverture_existante", []),
+        priorite_assurance=data.get("priorite_assurance")
+    )
+    db.add(profil)
+    db.commit()
+    db.refresh(profil)
+    return profil
+
+def get_profil_onboarding(db: Session, user_id: uuid.UUID) -> "ProfilOnboarding | None":
+    from app.modules.users_kyc.models import ProfilOnboarding
+    return db.query(ProfilOnboarding).filter(ProfilOnboarding.utilisateur_id == user_id).first()
+
+def update_user_onboarding_status(db: Session, user_id: uuid.UUID, complete: bool = True):
+    user = get_user_by_id(db, user_id)
+    if user:
+        user.onboarding_complete = complete
+        db.commit()
+        db.refresh(user)
+    return user
+
+
+def update_user_profile(db: Session, user_id: uuid.UUID, data: dict) -> Utilisateur:
+    """Met à jour les champs modifiables du profil utilisateur."""
+    user = get_user_by_id(db, user_id)
+    if not user:
+        return None
+    if data.get('pseudonyme') and data['pseudonyme'] != user.pseudonyme:
+        # Vérifier l'unicité du pseudonyme
+        existing = db.query(Utilisateur).filter(
+            Utilisateur.pseudonyme == data['pseudonyme'],
+            Utilisateur.id != user_id,
+        ).first()
+        if existing:
+            return 'taken'  # signal d'erreur
+        user.pseudonyme = data['pseudonyme']
+    db.commit()
+    db.refresh(user)
+    return user

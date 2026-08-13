@@ -5,12 +5,15 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_current_user, require_role, TokenPayload
 from app.core.database import get_session
 from app.modules.groups import service, repository
+from app.modules.users_kyc import repository as kyc_repository
 from app.modules.groups.schemas import (
     GroupCreate,
     GroupOut,
     JoinRequestOut,
     AdhesionOut,
     AdhesionValidate,
+    PendingRequestOut,
+    MemberOut,
 )
 
 router = APIRouter(prefix="/groups", tags=["groups"])
@@ -36,6 +39,18 @@ def get_groups(db: Session = Depends(get_session)):
     return repository.get_open_groups(db)
 
 
+@router.get("/admin/pending-requests", response_model=list[PendingRequestOut])
+def get_admin_pending_requests(
+    current_user: TokenPayload = Depends(require_role("admin_groupe")),
+    db: Session = Depends(get_session),
+):
+    """
+    Retourne toutes les demandes d'adhésion en attente
+    pour tous les groupes dont l'utilisateur est administrateur.
+    """
+    return service.get_admin_pending_requests(db, uuid.UUID(current_user.user_id))
+
+
 @router.get("/{id}", response_model=GroupOut)
 def get_group(id: uuid.UUID, db: Session = Depends(get_session)):
     """
@@ -53,6 +68,14 @@ def join_request(
     """
     Permet à un utilisateur dont le KYC est vérifié de demander à rejoindre un groupe.
     """
+    from fastapi import HTTPException, status
+    kyc = kyc_repository.get_kyc_by_user_id(db, uuid.UUID(current_user.user_id))
+    if not kyc or kyc.statut_verification != "verified":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Vérification KYC requise pour rejoindre un groupe."
+        )
+        
     return service.request_to_join_group(db, uuid.UUID(current_user.user_id), id)
 
 
@@ -98,4 +121,26 @@ def get_members(
     Liste les adhésions actives d'un groupe.
     """
     return service.get_group_members(db, id, uuid.UUID(current_user.user_id))
+
+
+@router.get("/{id}/members/enriched", response_model=list[MemberOut])
+def get_members_enriched(
+    id: uuid.UUID,
+    current_user: TokenPayload = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    """
+    Liste les membres actifs d'un groupe avec pseudonyme et flag admin.
+    """
+    return service.get_group_members_enriched(db, id, uuid.UUID(current_user.user_id))
+
+@router.get("/me/adhesions", response_model=list[AdhesionOut])
+def get_my_adhesions(
+    current_user: TokenPayload = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    """
+    Liste toutes les adhésions actives de l'utilisateur connecté.
+    """
+    return service.get_user_adhesions(db, uuid.UUID(current_user.user_id))
 

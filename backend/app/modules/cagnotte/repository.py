@@ -35,6 +35,7 @@ def create_cotisation(
     montant_base: float,
     coefficient_applique: float,
     montant_final: float,
+    periode: str,
     statut_paiement: str = "en_attente"
 ) -> Cotisation:
     # Remove existing pending cotisation for this period/adhesion if it exists
@@ -51,6 +52,7 @@ def create_cotisation(
         montant_base=montant_base,
         coefficient_applique=coefficient_applique,
         montant_final=montant_final,
+        periode=periode,
         statut_paiement=statut_paiement,
     )
     db.add(cotisation)
@@ -88,4 +90,23 @@ def crediter_cagnotte(db: Session, cagnotte_id: uuid.UUID, montant: float) -> Ca
         db.commit()
         db.refresh(cagnotte)
     return cagnotte
+
+
+def debiter_cagnotte(db: Session, cagnotte_id: uuid.UUID, montant: float) -> Cagnotte | None:
+    cagnotte = get_cagnotte_by_id(db, cagnotte_id)
+    if cagnotte:
+        cagnotte.solde_actuel = max(0.0, float(cagnotte.solde_actuel) - float(montant))
+        db.commit()
+        db.refresh(cagnotte)
+    return cagnotte
+
+
+def debiter_cagnotte_par_groupe(db: Session, groupe_id: uuid.UUID, montant: float) -> Cagnotte | None:
+    cagnotte = get_cagnotte_by_group_id(db, groupe_id)
+    if cagnotte:
+        cagnotte.solde_actuel = max(0.0, float(cagnotte.solde_actuel) - float(montant))
+        db.commit()
+        db.refresh(cagnotte)
+    return cagnotte
+
 

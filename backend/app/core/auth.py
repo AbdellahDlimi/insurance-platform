@@ -10,7 +10,7 @@ from typing import Optional
 
 import jwt
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 # --- Configuration (lue depuis les variables d'environnement) ---
@@ -24,7 +24,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users_kyc/login")
+oauth2_scheme = HTTPBearer()
 
 
 class TokenPayload(BaseModel):
@@ -51,7 +51,7 @@ def create_refresh_token(payload: TokenPayload) -> str:
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenPayload:
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(oauth2_scheme)) -> TokenPayload:
     """
     Dépendance FastAPI à utiliser dans TOUS les routers (A et B) :
 
@@ -65,6 +65,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenPayload:
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        token = credentials.credentials
         decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return TokenPayload(**decoded)
     except jwt.PyJWTError:

@@ -25,6 +25,8 @@ class Sinistre(Base):
     montant_declare = Column(Numeric(12, 2), nullable=False)
     montant_approuve = Column(Numeric(12, 2), nullable=True)
     statut = Column(String(50), nullable=False, default="en_attente")
+    motif_rejet = Column(Text, nullable=True)
+    commentaire_validation = Column(Text, nullable=True)
     score_fraude = Column(Numeric(5, 4), nullable=True)
     resume_ia = Column(Text, nullable=True)
     date_declaration = Column(
