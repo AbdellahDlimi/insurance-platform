@@ -205,6 +205,7 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
   const [cagnotte, setCagnotte] = useState(null);
   const [members, setMembers] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [groupClaims, setGroupClaims] = useState([]);
   const [myRequest, setMyRequest] = useState(null); // 'none' | 'en_attente' | 'membre'
   const [loading, setLoading]   = useState(true);
   const [joining, setJoining]   = useState(false);
@@ -215,6 +216,8 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
   const [appelLoading, setAppelLoading] = useState(false);
   const [montantAppel, setMontantAppel] = useState(50);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [selectedClaimAction, setSelectedClaimAction] = useState(null); // { claim, action: 'validate'|'reject', amount: '', motif: '' }
+  const [processingClaim, setProcessingClaim] = useState(false);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -223,14 +226,16 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
 
   const load = useCallback(async () => {
     try {
-      const [groupData, membersData, cagnotteData, cotisationsData] = await Promise.all([
+      const [groupData, membersData, cagnotteData, cotisationsData, claimsData] = await Promise.all([
         api.getGroup(groupId),
         api.getGroupMembersEnriched(groupId).catch(() => []),
         api.getCagnotte(groupId).catch(() => null),
-        (user?.id ? api.getMyCotisations(user.id).catch(() => []) : Promise.resolve([]))
+        (user?.id ? api.getMyCotisations(user.id).catch(() => []) : Promise.resolve([])),
+        api.getClaims(groupId).catch(() => []),
       ]);
       setGroup(groupData);
       setMembers(membersData);
+      setGroupClaims(claimsData);
       
       if (cagnotteData) {
         setCagnotte(cagnotteData);
@@ -258,6 +263,42 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
   }, [groupId, user]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleValidateClaim = async (claimId, amount, note) => {
+    if (!amount || parseFloat(amount) <= 0) {
+      showToast('Veuillez saisir un montant d\'indemnisation valide', 'error');
+      return;
+    }
+    setProcessingClaim(true);
+    try {
+      await api.validateClaim(claimId, amount, note);
+      showToast(`Sinistre validé avec succès ! ${amount} € ont été débités de la cagnotte du groupe.`);
+      setSelectedClaimAction(null);
+      load();
+    } catch (err) {
+      showToast(err.response?.data?.detail || 'Erreur lors de la validation.', 'error');
+    } finally {
+      setProcessingClaim(false);
+    }
+  };
+
+  const handleRejectClaim = async (claimId, motif) => {
+    if (!motif || motif.trim().length < 5) {
+      showToast('Veuillez fournir un motif d\'au moins 5 caractères', 'error');
+      return;
+    }
+    setProcessingClaim(true);
+    try {
+      await api.rejectClaim(claimId, motif);
+      showToast('Sinistre rejeté.');
+      setSelectedClaimAction(null);
+      load();
+    } catch (err) {
+      showToast(err.response?.data?.detail || 'Erreur lors du rejet.', 'error');
+    } finally {
+      setProcessingClaim(false);
+    }
+  };
 
   const handleJoin = async () => {
     setJoining(true);
@@ -296,9 +337,14 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
     setPayingId(cotisationId);
     try {
       const data = await api.createCheckoutSession(cotisationId);
-      window.location.href = data.url;
+      const targetUrl = data.checkout_url || data.url;
+      if (targetUrl) {
+        window.location.href = targetUrl;
+      } else {
+        showToast('URL de redirection introuvable.', 'error');
+      }
     } catch (err) {
-      showToast('Erreur lors de la redirection vers Stripe.', 'error');
+      showToast(err.response?.data?.detail || 'Erreur lors de la redirection vers Stripe.', 'error');
     } finally {
       setPayingId(null);
     }
@@ -407,7 +453,7 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
           )}
           {myRequest === 'membre' && (
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              <Btn variant="primary" onClick={() => navigate('/claims/new')} style={{ flexShrink: 0 }}>
+              <Btn variant="primary" onClick={() => navigate(`/claims/new?groupId=${groupId}`)} style={{ flexShrink: 0 }}>
                 <AlertTriangle size={14} /> Déclarer un sinistre
               </Btn>
               <div style={{
@@ -420,7 +466,7 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
             </div>
           )}
           {myRequest === 'admin' && (
-            <Btn variant="primary" onClick={() => navigate('/claims/new')} style={{ flexShrink: 0 }}>
+            <Btn variant="primary" onClick={() => navigate(`/claims/new?groupId=${groupId}`)} style={{ flexShrink: 0 }}>
               <AlertTriangle size={14} /> Déclarer un sinistre
             </Btn>
           )}
@@ -432,7 +478,8 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
           <motion.div variants={staggerItem}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1px', background: 'var(--gold-line)' }}>
               {[
-                { label: 'Cotisation de base', value: `${group.cotisation_de_base} €/mois`, accent: 'var(--gold)', icon: Wallet },
+                { label: 'Cagnotte du groupe', value: cagnotte ? `${Number(cagnotte.solde_actuel).toFixed(2)} €` : '0.00 €', accent: 'var(--gold)', icon: Wallet },
+                { label: 'Cotisation de base', value: `${group.cotisation_de_base} €/mois`, icon: Wallet },
                 { label: 'Membres actifs', value: members.length || group.nb_membres_estime || '?', icon: Users },
                 { label: 'Buffer pool cible', value: (myRequest === 'membre' || myRequest === 'admin') ? (group.buffer_pool_cible ? `${group.buffer_pool_cible} €` : '—') : 'Privé 🔒', icon: TrendingUp, accent: 'var(--success)' },
                 { label: 'Capacité max', value: group.capacite_max || 'Illimitée', icon: Star },
@@ -448,6 +495,33 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
                 </div>
               ))}
             </div>
+          </motion.div>
+
+          {/* ── Cagnotte Globale du Groupe Section ── */}
+          <motion.div variants={staggerItem}>
+            <Card style={{ background: 'linear-gradient(135deg, rgba(197,160,89,0.08), rgba(18,20,24,0.95))', border: '1px solid var(--gold-line)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
+                <div>
+                  <SectionLabel>Fonds Mutuels & Cagnotte du Groupe</SectionLabel>
+                  <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '2.25rem', fontWeight: 700, color: 'var(--gold)', marginTop: '0.25rem' }}>
+                    {cagnotte ? `${Number(cagnotte.solde_actuel).toFixed(2)} €` : '0.00 €'}
+                  </h2>
+                  <p style={{ color: 'var(--paper-dim)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                    Solde actuel de la réserve commune pour l'indemnisation des membres du groupe.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', background: 'rgba(0,0,0,0.3)', padding: '1rem 1.5rem', borderRadius: '8px', border: '1px solid rgba(240,237,230,0.06)' }}>
+                  <div>
+                    <p style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--success)', fontWeight: 600 }}>+ Cotisations (Entrées)</p>
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--paper-dim)', marginTop: '0.2rem' }}>Ajoutées à chaque paiement</p>
+                  </div>
+                  <div style={{ borderLeft: '1px solid rgba(240,237,230,0.1)', paddingLeft: '1.5rem' }}>
+                    <p style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--danger)', fontWeight: 600 }}>- Sinistres (Sorties)</p>
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--paper-dim)', marginTop: '0.2rem' }}>Déduits à chaque indemnisation</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
           </motion.div>
 
           {/* ── Cotisations for current member ── */}
@@ -665,6 +739,194 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
                         </motion.div>
                       ))}
                     </AnimatePresence>
+                  </div>
+                )}
+              </Card>
+            </motion.div>
+          )}
+
+          {/* ── Sinistres du groupe Section ── */}
+          {(myRequest === 'membre' || myRequest === 'admin') && (
+            <motion.div variants={staggerItem}>
+              <Card style={isAdmin ? { borderLeft: '3px solid var(--gold)', background: 'rgba(200,169,110,0.02)' } : {}}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                    <AlertTriangle size={15} color="var(--gold)" />
+                    <SectionLabel style={{ margin: 0 }}>Sinistres déclarés dans ce groupe</SectionLabel>
+                    {groupClaims.length > 0 && (
+                      <span style={{
+                        background: 'rgba(200,169,110,0.15)', color: 'var(--gold)',
+                        borderRadius: '999px', fontSize: '0.6875rem', fontWeight: 700,
+                        padding: '0.1rem 0.5rem',
+                      }}>
+                        {groupClaims.length}
+                      </span>
+                    )}
+                  </div>
+                  <Btn variant="ghost" onClick={() => navigate(`/claims/new?groupId=${groupId}`)} style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem' }}>
+                    + Déclarer un sinistre
+                  </Btn>
+                </div>
+
+                {groupClaims.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--paper-dim)' }}>
+                    <AlertTriangle size={28} style={{ margin: '0 auto 0.75rem', opacity: 0.25, display: 'block' }} />
+                    <p style={{ fontSize: '0.875rem' }}>Aucun sinistre n'a été déclaré dans ce groupe.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: 'var(--gold-line)', borderRadius: 2, overflow: 'hidden' }}>
+                    {groupClaims.map(claim => {
+                      const isPending = claim.statut === 'en_attente';
+                      const statusV = claim.statut === 'validee' ? 'success' : claim.statut === 'rejetee' ? 'danger' : 'warning';
+                      const statusL = claim.statut === 'validee' ? 'Approuvé' : claim.statut === 'rejetee' ? 'Rejeté' : 'En attente';
+                      const isTargetedAction = selectedClaimAction?.claimId === claim.id;
+
+                      return (
+                        <div
+                          key={claim.id}
+                          style={{
+                            background: 'var(--ink-90)', padding: '1rem 1.25rem',
+                            display: 'flex', flexDirection: 'column', gap: '0.75rem'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--paper-dim)' }}>
+                                {new Date(claim.date_declaration).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                              </span>
+                              <Badge variant={statusV}>{statusL}</Badge>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                              <span style={{ fontFamily: 'var(--font-display)', color: 'var(--gold)', fontWeight: 600, fontSize: '0.9375rem' }}>
+                                Déclaré : {claim.montant_declare} €
+                              </span>
+                              {claim.montant_approuve && (
+                                <span style={{ fontFamily: 'var(--font-display)', color: 'var(--success)', fontWeight: 600, fontSize: '0.9375rem' }}>
+                                  (Approuvé : {claim.montant_approuve} €)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <p style={{ color: 'var(--paper)', fontSize: '0.875rem', lineHeight: 1.5, background: 'rgba(0,0,0,0.2)', padding: '0.75rem 1rem', borderRadius: 4, margin: 0 }}>
+                            {claim.description}
+                          </p>
+
+                          {claim.statut === 'validee' && claim.commentaire_validation && (
+                            <div style={{ background: 'rgba(90,158,124,0.08)', borderLeft: '3px solid var(--success)', padding: '0.625rem 0.875rem', borderRadius: 4 }}>
+                              <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--success)', margin: 0, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                                Note / Raison de la décision d'indemnisation :
+                              </p>
+                              <p style={{ color: 'var(--paper)', fontSize: '0.84375rem', marginTop: '0.25rem', margin: 0, lineHeight: 1.4 }}>
+                                {claim.commentaire_validation}
+                              </p>
+                            </div>
+                          )}
+
+                          {claim.statut === 'rejetee' && (
+                            <div style={{ background: 'rgba(200,90,90,0.08)', borderLeft: '3px solid var(--danger)', padding: '0.625rem 0.875rem', borderRadius: 4 }}>
+                              <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--danger)', margin: 0, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                                Motif du rejet par l'administrateur :
+                              </p>
+                              <p style={{ color: 'var(--paper)', fontSize: '0.84375rem', marginTop: '0.25rem', margin: 0, lineHeight: 1.4 }}>
+                                {claim.motif_rejet || 'Votre demande de sinistre a été refusée par l\'administrateur du groupe.'}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Controls for Admin on pending claims */}
+                          {isAdmin && isPending && (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(240,237,230,0.05)' }}>
+                              {isTargetedAction ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', width: '100%', justifyContent: 'flex-end' }}>
+                                  {selectedClaimAction.action === 'validate' ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                        <span style={{ fontSize: '0.8125rem', color: 'var(--paper-dim)' }}>Montant à indemniser (€) :</span>
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          value={selectedClaimAction.amount}
+                                          onChange={e => setSelectedClaimAction({ ...selectedClaimAction, amount: e.target.value })}
+                                          style={{ width: '130px', padding: '0.35rem 0.6rem', background: 'var(--ink)', border: '1px solid var(--gold-line)', color: 'var(--paper)', borderRadius: 2, fontSize: '0.875rem' }}
+                                        />
+                                      </div>
+                                      <input
+                                        type="text"
+                                        placeholder="Raison de l'ajustement / Note (ex: plafonnement, remboursement partiel)..."
+                                        value={selectedClaimAction.note || ''}
+                                        onChange={e => setSelectedClaimAction({ ...selectedClaimAction, note: e.target.value })}
+                                        style={{ width: '100%', padding: '0.35rem 0.6rem', background: 'var(--ink)', border: '1px solid var(--gold-line)', color: 'var(--paper)', borderRadius: 2, fontSize: '0.8125rem' }}
+                                      />
+                                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                        <Btn variant="ghost" onClick={() => setSelectedClaimAction(null)} style={{ padding: '0.35rem 0.6rem', fontSize: '0.8125rem' }}>
+                                          Annuler
+                                        </Btn>
+                                        <Btn
+                                          variant="primary"
+                                          loading={processingClaim}
+                                          onClick={() => handleValidateClaim(claim.id, selectedClaimAction.amount, selectedClaimAction.note)}
+                                          style={{ padding: '0.35rem 0.85rem', fontSize: '0.8125rem' }}
+                                        >
+                                          Confirmer & Débiter Cagnotte
+                                        </Btn>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <input
+                                        type="text"
+                                        placeholder="Motif du rejet (min. 5 caract.)..."
+                                        value={selectedClaimAction.motif}
+                                        onChange={e => setSelectedClaimAction({ ...selectedClaimAction, motif: e.target.value })}
+                                        style={{ flex: 1, minWidth: '200px', padding: '0.35rem 0.6rem', background: 'var(--ink)', border: '1px solid var(--gold-line)', color: 'var(--paper)', borderRadius: 2, fontSize: '0.875rem' }}
+                                      />
+                                      <button
+                                        disabled={processingClaim}
+                                        onClick={() => handleRejectClaim(claim.id, selectedClaimAction.motif)}
+                                        style={{ padding: '0.35rem 0.85rem', background: 'rgba(200,90,90,0.2)', border: '1px solid var(--danger)', color: 'var(--danger)', borderRadius: 2, cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600 }}
+                                      >
+                                        Confirmer le rejet
+                                      </button>
+                                    </>
+                                  )}
+                                  {selectedClaimAction.action !== 'validate' && (
+                                    <Btn variant="ghost" onClick={() => setSelectedClaimAction(null)} style={{ padding: '0.35rem 0.6rem', fontSize: '0.8125rem' }}>
+                                      Annuler
+                                    </Btn>
+                                  )}
+                                </div>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => setSelectedClaimAction({ claimId: claim.id, action: 'validate', amount: claim.montant_declare, motif: '', note: '' })}
+                                    style={{
+                                      display: 'flex', alignItems: 'center', gap: '0.375rem',
+                                      padding: '0.4rem 0.875rem', border: '1px solid var(--success)',
+                                      background: 'rgba(90,158,124,0.12)', color: 'var(--success)',
+                                      borderRadius: 2, cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600,
+                                    }}
+                                  >
+                                    <Check size={13} /> Valider & Débiter Cagnotte
+                                  </button>
+                                  <button
+                                    onClick={() => setSelectedClaimAction({ claimId: claim.id, action: 'reject', amount: '', motif: '' })}
+                                    style={{
+                                      display: 'flex', alignItems: 'center', gap: '0.375rem',
+                                      padding: '0.4rem 0.875rem', border: '1px solid var(--danger)',
+                                      background: 'rgba(200,90,90,0.08)', color: 'var(--danger)',
+                                      borderRadius: 2, cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600,
+                                    }}
+                                  >
+                                    <X size={13} /> Rejeter
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </Card>

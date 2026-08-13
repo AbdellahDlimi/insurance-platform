@@ -102,12 +102,12 @@ def verified_client(auth_client):
     client = auth_client["client"]
     client.post(
         "/users_kyc/kyc/submit",
-        json={
+        data={
             "nom_complet": "User KYC",
             "date_naissance": "1990-01-01",
-            "numero_document": "DOC123",
             "type_document": "cni"
-        }
+        },
+        files={"file": ("test.pdf", b"pdf content", "application/pdf")}
     )
     import time
     time.sleep(6)  # Attendre que le mock asynchrone passe le statut à 'verified'

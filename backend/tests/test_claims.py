@@ -26,8 +26,16 @@ def test_submit_claim_and_validate(verified_client, client):
     
     member_id = client.get("/users_kyc/me", headers=member_headers).json()["id"]
     
-    # KYC du membre
-    kyc_res = client.post("/users_kyc/kyc/submit", json={"nom_complet": "X", "date_naissance": "2000-01-01", "numero_document": "1", "type_document": "cni"}, headers=member_headers)
+    kyc_res = client.post(
+        "/users_kyc/kyc/submit",
+        data={
+            "nom_complet": "X",
+            "date_naissance": "2000-01-01",
+            "type_document": "cni"
+        },
+        files={"file": ("test.pdf", b"pdf content", "application/pdf")},
+        headers=member_headers
+    )
     assert kyc_res.status_code == 201, kyc_res.json()
     import time
     time.sleep(6)

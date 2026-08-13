@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { AlertTriangle, ChevronLeft } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { AlertTriangle, ChevronLeft, X } from 'lucide-react';
 import { api } from '../api.js';
 import { pageVariants, Card, Btn, Field, SectionLabel, AlertBanner, PageLoader, Badge, DisplayItalic } from '../ui.jsx';
 
@@ -13,10 +13,33 @@ export const DeclareClaimPage = ({ navigate }) => {
   const [formData, setFormData]   = useState({ adhesion_id: '', groupe_id: '', description: '', montant_declare: '' });
 
   useEffect(() => {
-    api.getMyAdhesions()
-      .then(data => {
-        setAdhesions(data);
-        if (data.length > 0) setFormData(p => ({ ...p, adhesion_id: data[0].id, groupe_id: data[0].groupe_id }));
+    Promise.all([
+      api.getMyAdhesions(),
+      api.getGroups().catch(() => []),
+    ])
+      .then(([adhesionList, groupList]) => {
+        const enriched = adhesionList.map(a => {
+          const group = groupList.find(g => g.id === a.groupe_id);
+          return {
+            ...a,
+            group_name: group ? group.nom : `Groupe (${a.groupe_id.substring(0, 8)}…)`,
+            specialite: group ? group.specialite : '',
+          };
+        });
+        setAdhesions(enriched);
+
+        // Pre-select group if passed in URL query param
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetedGroupId = urlParams.get('groupId');
+        let defaultAdhesion = enriched[0];
+        if (targetedGroupId) {
+          const found = enriched.find(a => a.groupe_id === targetedGroupId);
+          if (found) defaultAdhesion = found;
+        }
+
+        if (defaultAdhesion) {
+          setFormData(p => ({ ...p, adhesion_id: defaultAdhesion.id, groupe_id: defaultAdhesion.groupe_id }));
+        }
       })
       .catch(() => setError('Impossible de charger vos groupes.'))
       .finally(() => setLoading(false));
@@ -56,14 +79,14 @@ export const DeclareClaimPage = ({ navigate }) => {
           Déclarer un <DisplayItalic>sinistre</DisplayItalic>
         </h1>
         <p style={{ color: 'var(--paper-dim)', fontSize: '0.9375rem', fontWeight: 300, marginBottom: '2.5rem' }}>
-          Fournissez les détails de votre sinistre. Votre groupe et nos équipes seront informés.
+          Fournissez les détails de votre sinistre. Sélectionnez le groupe d'assurance concerné par cette déclaration.
         </p>
 
         <Card gold>
           {loading ? (
             <div style={{ textAlign: 'center', paddingBlock: '3rem' }}>
               <div className="spinner" style={{ margin: '0 auto 1rem' }} />
-              <p className="text-caption">Chargement de vos contrats…</p>
+              <p className="text-caption">Chargement de vos contrats et groupes…</p>
             </div>
           ) : adhesions.length === 0 ? (
             <div style={{ textAlign: 'center', paddingBlock: '3rem' }}>
@@ -75,12 +98,17 @@ export const DeclareClaimPage = ({ navigate }) => {
               {error && <AlertBanner type="error">{error}</AlertBanner>}
 
               <div>
-                <label className="input-label">Groupe concerné</label>
-                <select className="input-field" value={formData.adhesion_id} onChange={handleGroupSelect} required>
+                <label className="input-label">Groupe d'assurance concerné</label>
+                <select className="input-field" value={formData.adhesion_id} onChange={handleGroupSelect} required style={{ fontSize: '0.9375rem', padding: '0.75rem 1rem' }}>
                   {adhesions.map(a => (
-                    <option key={a.id} value={a.id}>Contrat / Adhésion : {a.id.substring(0, 8)}…</option>
+                    <option key={a.id} value={a.id}>
+                      {a.group_name} {a.specialite ? `(${a.specialite})` : ''}
+                    </option>
                   ))}
                 </select>
+                <p className="text-caption" style={{ marginTop: '0.375rem', color: 'var(--paper-dim)' }}>
+                  Le sinistre sera transmis à l'administrateur de ce groupe et sera couvert par sa cagnotte.
+                </p>
               </div>
 
               <Field
@@ -116,12 +144,109 @@ export const DeclareClaimPage = ({ navigate }) => {
   );
 };
 
-/* ── Claims List ── */
-const MOCK_CLAIMS = [
-  { id: 1, date: '15/07/2026', group_name: 'Mobilité Douce Paris', description: 'Vol de vélo électrique en stationnement', amount: 850, status: 'en_attente' },
-  { id: 2, date: '02/06/2026', group_name: 'Mobilité Douce Paris', description: 'Collision trottinette — dommages matériels', amount: 320, status: 'approuve' },
-  { id: 3, date: '18/05/2026', group_name: 'Habitation Sud',       description: 'Dégât des eaux — cuisine',                 amount: 1200, status: 'rejete' },
-];
+/* ── Claim Detail Modal ── */
+const ClaimDetailModal = ({ claim, onClose }) => {
+  if (!claim) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(12,12,12,0.85)', backdropFilter: 'blur(8px)',
+        zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '1rem'
+      }}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: 'var(--ink)', border: '1px solid var(--gold-line)',
+          borderRadius: '8px', width: '100%', maxWidth: '520px',
+          overflow: 'hidden', display: 'flex', flexDirection: 'column',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.5)', padding: '2rem'
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+          <div>
+            <SectionLabel>Détails du sinistre</SectionLabel>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 600, color: 'var(--paper)', marginTop: '0.25rem' }}>
+              {claim.group_name}
+            </h2>
+            <p style={{ color: 'var(--paper-dim)', fontSize: '0.8125rem', marginTop: '0.2rem' }}>
+              Déclaré le {claim.date}
+            </p>
+          </div>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--paper)', cursor: 'pointer', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <p style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(240,237,230,0.4)', marginBottom: '0.375rem' }}>Description</p>
+            <p style={{ background: 'var(--ink-90)', padding: '0.875rem 1rem', borderRadius: 4, color: 'var(--paper)', fontSize: '0.9375rem', lineHeight: 1.6, border: '1px solid rgba(240,237,230,0.05)', margin: 0 }}>
+              {claim.description}
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: 'var(--ink-80)', padding: '1rem', borderRadius: 4 }}>
+            <div>
+              <p style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(240,237,230,0.4)', marginBottom: '0.25rem' }}>Montant Déclaré</p>
+              <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 700, color: 'var(--gold)' }}>
+                {claim.amount} €
+              </p>
+            </div>
+            <div>
+              <p style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(240,237,230,0.4)', marginBottom: '0.25rem' }}>Statut actuel</p>
+              <Badge variant={statusVariant[claim.status] || 'warning'}>{statusLabel[claim.status] || claim.status}</Badge>
+            </div>
+          </div>
+
+          {claim.status === 'validee' && claim.montant_approuve && (
+            <div style={{ background: 'rgba(90,158,124,0.08)', borderLeft: '3px solid var(--success)', padding: '1rem', borderRadius: 4 }}>
+              <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--success)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.25rem' }}>Montant Approuvé & Indemnisé</p>
+              <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 700, color: 'var(--success)' }}>
+                {claim.montant_approuve} €
+              </p>
+              {claim.commentaire_validation && (
+                <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(90,158,124,0.2)' }}>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--paper-dim)', fontWeight: 500, marginBottom: '0.25rem' }}>
+                    Note / Raison de l'ajustement du montant par l'admin :
+                  </p>
+                  <p style={{ color: 'var(--paper)', fontSize: '0.875rem', lineHeight: 1.4, margin: 0 }}>
+                    {claim.commentaire_validation}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {claim.status === 'rejetee' && (
+            <div style={{ background: 'rgba(200,90,90,0.08)', borderLeft: '3px solid var(--danger)', padding: '1rem', borderRadius: 4 }}>
+              <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--danger)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>
+                Motif du Rejet par l'Administrateur
+              </p>
+              <p style={{ color: 'var(--paper)', fontSize: '0.9375rem', lineHeight: 1.5, fontWeight: 400, margin: 0 }}>
+                {claim.motif_rejet || 'Votre demande de sinistre a été refusée par l\'administrateur du groupe.'}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
+          <Btn variant="primary" onClick={onClose}>Fermer</Btn>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 const statusVariant = { validee: 'success', rejetee: 'danger', en_attente: 'warning' };
 const statusLabel   = { validee: 'Approuvé', rejetee: 'Rejeté', en_attente: 'En attente' };
@@ -130,6 +255,7 @@ export const ClaimsPage = ({ navigate }) => {
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedClaim, setSelectedClaim] = useState(null);
 
   useEffect(() => {
     const fetchClaims = async () => {
@@ -164,6 +290,10 @@ export const ClaimsPage = ({ navigate }) => {
 
   return (
     <motion.div {...pageVariants} style={{ paddingTop: '6rem', paddingBottom: '4rem' }}>
+      <AnimatePresence>
+        {selectedClaim && <ClaimDetailModal claim={selectedClaim} onClose={() => setSelectedClaim(null)} />}
+      </AnimatePresence>
+
       <div className="container-editorial">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem', marginBottom: '2.5rem' }}>
           <div>
@@ -218,7 +348,10 @@ export const ClaimsPage = ({ navigate }) => {
                       </td>
                       <td><Badge variant={statusVariant[claim.status] || 'warning'}>{statusLabel[claim.status] || claim.status}</Badge></td>
                       <td style={{ textAlign: 'right' }}>
-                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gold)' }}>
+                        <button
+                          onClick={() => setSelectedClaim(claim)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gold)' }}
+                        >
                           Détails →
                         </button>
                       </td>

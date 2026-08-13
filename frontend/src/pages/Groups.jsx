@@ -44,6 +44,39 @@ export const GroupsExplorer = ({ navigate }) => {
       return 0;
     });
 
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newGroupData, setNewGroupData] = useState({
+    nom: '',
+    specialite: 'Équipements électroniques',
+    description: '',
+    cotisation_de_base: 50,
+    capacite_max: 50,
+    est_ouvert: true
+  });
+
+  const handleCreateGroup = async (e) => {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      const created = await api.createGroup({
+        ...newGroupData,
+        cotisation_de_base: parseFloat(newGroupData.cotisation_de_base),
+        capacite_max: parseInt(newGroupData.capacite_max)
+      });
+      setShowCreateModal(false);
+      alert('Groupe créé avec succès !');
+      // refresh groups list
+      const updated = await api.getGroups();
+      setGroups(updated);
+      navigate(`/groups/${created.id}`);
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Erreur lors de la création du groupe.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
   if (loading) return <PageLoader label="Chargement des groupes…" />;
 
   return (
@@ -60,24 +93,155 @@ export const GroupsExplorer = ({ navigate }) => {
               {filteredGroups.length} groupe{filteredGroups.length !== 1 ? 's' : ''} disponible{filteredGroups.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <div style={{ position: 'relative', width: '100%', maxWidth: '300px' }}>
-            <Search size={16} color="var(--paper-dim)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
-            <input 
-              type="text" 
-              placeholder="Rechercher par nom..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem',
-                background: 'var(--ink-90)', border: '1px solid rgba(240,237,230,0.1)',
-                color: 'var(--paper)', fontSize: '0.875rem', outline: 'none',
-                transition: 'border-color 0.2s'
-              }}
-              onFocus={e => e.target.style.borderColor = 'var(--gold-dim)'}
-              onBlur={e => e.target.style.borderColor = 'rgba(240,237,230,0.1)'}
-            />
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', width: '100%', maxWidth: '260px' }}>
+              <Search size={16} color="var(--paper-dim)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+              <input 
+                type="text" 
+                placeholder="Rechercher par nom..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem',
+                  background: 'var(--ink-90)', border: '1px solid rgba(240,237,230,0.1)',
+                  color: 'var(--paper)', fontSize: '0.875rem', outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+                onFocus={e => e.target.style.borderColor = 'var(--gold-dim)'}
+                onBlur={e => e.target.style.borderColor = 'rgba(240,237,230,0.1)'}
+              />
+            </div>
+
+            <Btn variant="primary" onClick={() => setShowCreateModal(true)}>
+              + Créer un groupe
+            </Btn>
           </div>
         </div>
+
+        {/* Modal Créer un Groupe */}
+        {showCreateModal && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(5px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem'
+          }}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              style={{
+                background: 'var(--ink-90)', border: '1px solid var(--gold-line)',
+                maxWidth: '520px', width: '100%', padding: '2.5rem', borderRadius: '8px'
+              }}
+            >
+              <h2 className="text-display-sm" style={{ marginBottom: '0.5rem' }}>Créer un <DisplayItalic>Groupe</DisplayItalic></h2>
+              <p style={{ color: 'var(--paper-dim)', fontSize: '0.875rem', marginBottom: '2rem' }}>
+                Devenez administrateur d'un groupe d'assurance collaborative P2P.
+              </p>
+
+              <form onSubmit={handleCreateGroup} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--paper-dim)', marginBottom: '0.375rem' }}>
+                    Nom du groupe
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ex: Mutuelle des Développeurs Maroc"
+                    value={newGroupData.nom}
+                    onChange={e => setNewGroupData({ ...newGroupData, nom: e.target.value })}
+                    style={{
+                      width: '100%', padding: '0.75rem 1rem', background: 'var(--ink)',
+                      border: '1px solid rgba(240,237,230,0.15)', color: 'var(--paper)', outline: 'none'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--paper-dim)', marginBottom: '0.375rem' }}>
+                    Spécialité / Type d'assurance
+                  </label>
+                  <select
+                    value={newGroupData.specialite}
+                    onChange={e => setNewGroupData({ ...newGroupData, specialite: e.target.value })}
+                    style={{
+                      width: '100%', padding: '0.75rem 1rem', background: 'var(--ink)',
+                      border: '1px solid rgba(240,237,230,0.15)', color: 'var(--paper)', outline: 'none'
+                    }}
+                  >
+                    <option value="Équipements électroniques">Équipements électroniques</option>
+                    <option value="Auto">Auto</option>
+                    <option value="Santé & Mutuelle">Santé & Mutuelle</option>
+                    <option value="Habitation">Habitation</option>
+                    <option value="Voyage">Voyage</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--paper-dim)', marginBottom: '0.375rem' }}>
+                    Description
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    placeholder="Décrivez l'objectif et les règles de votre communauté..."
+                    value={newGroupData.description}
+                    onChange={e => setNewGroupData({ ...newGroupData, description: e.target.value })}
+                    style={{
+                      width: '100%', padding: '0.75rem 1rem', background: 'var(--ink)',
+                      border: '1px solid rgba(240,237,230,0.15)', color: 'var(--paper)', outline: 'none', resize: 'vertical'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--paper-dim)', marginBottom: '0.375rem' }}>
+                      Cotisation (€/mois)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={newGroupData.cotisation_de_base}
+                      onChange={e => setNewGroupData({ ...newGroupData, cotisation_de_base: e.target.value })}
+                      style={{
+                        width: '100%', padding: '0.75rem 1rem', background: 'var(--ink)',
+                        border: '1px solid rgba(240,237,230,0.15)', color: 'var(--paper)', outline: 'none'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--paper-dim)', marginBottom: '0.375rem' }}>
+                      Capacité Max
+                    </label>
+                    <input
+                      type="number"
+                      min="2"
+                      required
+                      value={newGroupData.capacite_max}
+                      onChange={e => setNewGroupData({ ...newGroupData, capacite_max: e.target.value })}
+                      style={{
+                        width: '100%', padding: '0.75rem 1rem', background: 'var(--ink)',
+                        border: '1px solid rgba(240,237,230,0.15)', color: 'var(--paper)', outline: 'none'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                  <Btn variant="ghost" type="button" onClick={() => setShowCreateModal(false)} style={{ flex: 1, justifyContent: 'center' }}>
+                    Annuler
+                  </Btn>
+                  <Btn variant="primary" type="submit" loading={creating} style={{ flex: 1, justifyContent: 'center' }}>
+                    Créer le groupe
+                  </Btn>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
 
         {filteredGroups.length === 0 ? (
           <Card style={{ textAlign: 'center', paddingBlock: '4rem' }}>

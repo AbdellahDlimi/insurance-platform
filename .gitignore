@@ -17,5 +17,6 @@ node_modules/
 frontend/dist/
 frontend/images/
 
-# Fichiers de test temporaires
+# Fichiers de test et d'uploads temporaires
 backend/test_resend.py
+backend/uploads/

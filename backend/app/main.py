@@ -22,9 +22,17 @@ from app.modules.users_kyc.router import router as users_kyc_router
 from app.ai.matchmaker.router import router as matchmaker_router
 from app.modules.payments.router import router as payments_router
 from app.core.database import Base, engine
+from sqlalchemy import text
 
-# S'assurer que les tables sont créées
+# S'assurer que les tables sont créées et que les colonnes récentes existent
 Base.metadata.create_all(bind=engine)
+try:
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE sinistre ADD COLUMN IF NOT EXISTS motif_rejet TEXT;"))
+        conn.execute(text("ALTER TABLE sinistre ADD COLUMN IF NOT EXISTS commentaire_validation TEXT;"))
+        conn.commit()
+except Exception as e:
+    print(f"[DB Migration Warning] {e}")
 
 app = FastAPI(title="Plateforme Assurance Collaborative P2P")
 

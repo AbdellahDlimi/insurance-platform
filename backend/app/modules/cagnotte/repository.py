@@ -91,3 +91,22 @@ def crediter_cagnotte(db: Session, cagnotte_id: uuid.UUID, montant: float) -> Ca
         db.refresh(cagnotte)
     return cagnotte
 
+
+def debiter_cagnotte(db: Session, cagnotte_id: uuid.UUID, montant: float) -> Cagnotte | None:
+    cagnotte = get_cagnotte_by_id(db, cagnotte_id)
+    if cagnotte:
+        cagnotte.solde_actuel = max(0.0, float(cagnotte.solde_actuel) - float(montant))
+        db.commit()
+        db.refresh(cagnotte)
+    return cagnotte
+
+
+def debiter_cagnotte_par_groupe(db: Session, groupe_id: uuid.UUID, montant: float) -> Cagnotte | None:
+    cagnotte = get_cagnotte_by_group_id(db, groupe_id)
+    if cagnotte:
+        cagnotte.solde_actuel = max(0.0, float(cagnotte.solde_actuel) - float(montant))
+        db.commit()
+        db.refresh(cagnotte)
+    return cagnotte
+
+

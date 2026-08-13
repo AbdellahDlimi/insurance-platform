@@ -74,6 +74,9 @@ export const DashboardPage = ({ user, navigate }) => {
             <Btn variant="secondary" onClick={() => navigate('/groups')}>
               Rechercher un groupe
             </Btn>
+            <Btn variant="primary" onClick={() => navigate('/groups')}>
+              + Créer un groupe
+            </Btn>
           </div>
         </div>
 

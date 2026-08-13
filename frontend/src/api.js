@@ -100,6 +100,17 @@ export const api = {
     const res = await axiosClient.post('/claims/', data);
     return res.data;
   },
+  validateClaim: async (sinistreId, montantApprouve, commentaireValidation) => {
+    const res = await axiosClient.post(`/claims/${sinistreId}/validate`, {
+      montant_approuve: parseFloat(montantApprouve),
+      commentaire_validation: commentaireValidation || null,
+    });
+    return res.data;
+  },
+  rejectClaim: async (sinistreId, motif) => {
+    const res = await axiosClient.post(`/claims/${sinistreId}/reject`, { motif });
+    return res.data;
+  },
   getNotifications: async (unreadOnly = false) => {
     const res = await axiosClient.get('/notifications/', { params: { non_lues_only: unreadOnly } });
     return res.data;
@@ -175,6 +186,22 @@ export const api = {
   },
   payCotisation: async (cotisationId) => {
     const res = await axiosClient.post(`/payments/confirm/${cotisationId}`);
+    return res.data;
+  },
+  createGroup: async (data) => {
+    const res = await axiosClient.post('/groups', data);
+    return res.data;
+  },
+  confirmSimulatedPayment: async (paymentId) => {
+    const res = await axiosClient.post(`/payments/confirm-simulated/${paymentId}`);
+    return res.data;
+  },
+  getPayment: async (paymentId) => {
+    const res = await axiosClient.get(`/payments/${paymentId}`);
+    return res.data;
+  },
+  getMyPayments: async () => {
+    const res = await axiosClient.get('/payments/my-payments');
     return res.data;
   },
 };

@@ -215,34 +215,36 @@ export const Navbar = ({ currentPath, navigate, user, logout }) => {
                 <AnimatePresence>
                   {showNotifications && (
                     <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
                       style={{
-                        position: 'absolute', top: '100%', right: 0, marginTop: '1rem', width: 320,
-                        background: 'var(--surface)', border: '1px solid var(--gold-line)', borderRadius: 12,
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.4)', zIndex: 100, overflow: 'hidden'
+                        position: 'absolute', top: '100%', right: 0, marginTop: '1rem', width: 360,
+                        background: '#121418', border: '1px solid var(--gold-line)', borderRadius: 12,
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.9)', zIndex: 99999, overflow: 'hidden',
+                        backdropFilter: 'blur(20px)',
                       }}
                     >
-                      <div style={{ padding: '1rem', borderBottom: '1px solid var(--gold-line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--paper)', fontFamily: 'var(--font-display)' }}>Notifications</h3>
+                      <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--gold-line)', background: '#17191e', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--paper)', fontFamily: 'var(--font-display)', fontWeight: 600 }}>Notifications</h3>
                         {unreadCount > 0 && (
                           <button 
                             onClick={handleMarkAllRead}
-                            style={{ background: 'none', border: 'none', color: 'var(--gold)', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                            style={{ background: 'none', border: 'none', color: 'var(--gold)', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 500 }}
                           >
                             <CheckCheck size={14} /> Tout lire
                           </button>
                         )}
                       </div>
-                      <div style={{ maxHeight: 340, overflowY: 'auto', padding: '0.25rem' }}>
+                      <div style={{ maxHeight: 380, overflowY: 'auto', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.375rem', background: '#121418' }}>
                         {notifications.length === 0 ? (
-                          <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--paper-dim)' }}>
-                            <Bell size={28} style={{ margin: '0 auto 0.75rem', opacity: 0.2, display: 'block' }} />
-                            <p style={{ fontSize: '0.875rem' }}>Aucune notification</p>
+                          <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--paper-dim)' }}>
+                            <Bell size={32} style={{ margin: '0 auto 0.75rem', opacity: 0.2, display: 'block' }} />
+                            <p style={{ fontSize: '0.875rem' }}>Aucune notification pour le moment.</p>
                           </div>
                         ) : (
-                          notifications.map((n, i) => {
+                          notifications.map((n) => {
                             const cfg = NOTIF_CONFIG[n.type] || DEFAULT_CONFIG;
                             const Icon = cfg.icon;
                             return (
@@ -250,33 +252,33 @@ export const Navbar = ({ currentPath, navigate, user, logout }) => {
                                 key={n.id}
                                 onClick={() => handleNotifClick(n)}
                                 style={{
-                                  padding: '0.75rem 0.875rem', borderRadius: 8, cursor: 'pointer',
-                                  background: n.lu ? 'transparent' : 'rgba(200,169,110,0.04)',
+                                  padding: '0.875rem 1rem', borderRadius: 8, cursor: 'pointer',
+                                  background: n.lu ? 'rgba(255,255,255,0.02)' : 'rgba(200,169,110,0.1)',
+                                  border: `1px solid ${n.lu ? 'rgba(240,237,230,0.06)' : 'rgba(200,169,110,0.25)'}`,
                                   display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
-                                  borderBottom: i < notifications.length - 1 ? '1px solid rgba(240,237,230,0.04)' : 'none',
-                                  transition: 'background 0.15s',
+                                  transition: 'all 0.15s ease-in-out',
                                 }}
-                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(200,169,110,0.08)'}
-                                onMouseLeave={e => e.currentTarget.style.background = n.lu ? 'transparent' : 'rgba(200,169,110,0.04)'}
+                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(200,169,110,0.16)'}
+                                onMouseLeave={e => e.currentTarget.style.background = n.lu ? 'rgba(255,255,255,0.02)' : 'rgba(200,169,110,0.1)'}
                               >
                                 <div style={{
-                                  width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-                                  background: `${cfg.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  marginTop: '0.1rem',
+                                  width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                                  background: `${cfg.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  marginTop: '0.1rem', border: `1px solid ${cfg.color}40`
                                 }}>
-                                  <Icon size={14} color={cfg.color} />
+                                  <Icon size={15} color={cfg.color} />
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
-                                    <span style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: cfg.color, fontWeight: 600 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                                    <span style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: cfg.color, fontWeight: 700 }}>
                                       {cfg.label}
                                     </span>
-                                    {!n.lu && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gold)', flexShrink: 0 }} />}
+                                    {!n.lu && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--gold)', flexShrink: 0 }} />}
                                   </div>
-                                  <p style={{ margin: 0, fontSize: '0.8125rem', color: n.lu ? 'var(--paper-dim)' : 'var(--paper)', fontWeight: n.lu ? 400 : 500, lineHeight: 1.4 }}>
+                                  <p style={{ margin: 0, fontSize: '0.8125rem', color: n.lu ? 'var(--paper-dim)' : 'var(--paper)', fontWeight: n.lu ? 400 : 500, lineHeight: 1.45 }}>
                                     {n.contenu}
                                   </p>
-                                  <span style={{ fontSize: '0.6875rem', color: 'rgba(240,237,230,0.3)', marginTop: '0.25rem', display: 'block' }}>
+                                  <span style={{ fontSize: '0.6875rem', color: 'rgba(240,237,230,0.35)', marginTop: '0.375rem', display: 'block' }}>
                                     {timeAgo(n.created_at)}
                                   </span>
                                 </div>

@@ -93,6 +93,10 @@ def login_user(db: Session, data: UserLogin) -> TokenResponse:
     )
 
 
+def _valider_kyc_mock(db_session_factory, user_id):
+    pass
+
+
 def submit_kyc(db: Session, user_id: uuid.UUID, data: dict, file: UploadFile) -> CoffreKYC:
     """
     Chiffre les données KYC en utilisant Fernet (KMS) et enregistre le fichier.
@@ -125,6 +129,11 @@ def submit_kyc(db: Session, user_id: uuid.UUID, data: dict, file: UploadFile) ->
         document_url=file_path
     )
     
+    # Instant KYC validation mock for tests (asynchronous)
+    if _valider_kyc_mock:
+        t = threading.Thread(target=_valider_kyc_mock, args=(None, user_id))
+        t.start()
+        
     return coffre
 
 

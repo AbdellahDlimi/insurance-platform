@@ -3,12 +3,12 @@ def test_submit_kyc(auth_client):
     
     response = client.post(
         "/users_kyc/kyc/submit",
-        json={
+        data={
             "nom_complet": "Jean Dupont",
             "date_naissance": "1990-01-01",
-            "numero_document": "AB123456",
             "type_document": "passeport"
-        }
+        },
+        files={"file": ("test.pdf", b"pdf content", "application/pdf")}
     )
     assert response.status_code == 201
     data = response.json()
@@ -21,15 +21,14 @@ def test_get_kyc_status(auth_client):
     response = client.get("/users_kyc/kyc/status")
     assert response.status_code == 404
     
-    # On soumet le KYC
     client.post(
         "/users_kyc/kyc/submit",
-        json={
+        data={
             "nom_complet": "Jean Dupont",
             "date_naissance": "1990-01-01",
-            "numero_document": "AB123456",
             "type_document": "passeport"
-        }
+        },
+        files={"file": ("test.pdf", b"pdf content", "application/pdf")}
     )
     
     import time

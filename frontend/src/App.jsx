@@ -21,6 +21,7 @@ import { FeaturesPage }     from './pages/Features.jsx';
 import { ProfilePage }      from './pages/Profile.jsx';
 import { PaymentSuccess }   from './pages/PaymentSuccess.jsx';
 import { PaymentCancel }    from './pages/PaymentCancel.jsx';
+import { StripeCheckout }   from './pages/StripeCheckout.jsx';
 /* ── Placeholder for future modules ── */
 const ComingSoon = ({ navigate }) => (
   <div style={{
@@ -84,7 +85,7 @@ export default function App() {
         
         // Respect the current URL if it's a payment callback from Stripe
         const browserPath = window.location.pathname;
-        const isPaymentCallback = browserPath.startsWith('/payment/');
+        const isPaymentCallback = browserPath.startsWith('/payment/') || browserPath.startsWith('/stripe-checkout');
         
         if (isPaymentCallback) {
           setCurrentPath(browserPath + window.location.search);
@@ -114,7 +115,7 @@ export default function App() {
 
   /* Route guard + rendering */
   const renderRoute = () => {
-    const PROTECTED = ['/dashboard', '/kyc', '/claims', '/claims/new', '/groups', '/onboarding', '/profile', '/admin/dashboard', '/admin/kyc'];
+    const PROTECTED = ['/dashboard', '/kyc', '/claims', '/claims/new', '/groups', '/onboarding', '/profile', '/admin/dashboard', '/admin/kyc', '/stripe-checkout'];
     
     // Strip query params and hash fragments for route matching
     const basePath = currentPath.split('?')[0].split('#')[0];
@@ -122,7 +123,7 @@ export default function App() {
     if (PROTECTED.includes(basePath) && !user) {
       return <AuthPage type="login" navigate={navigate} user={user} setUser={setUser} />;
     }
-    if (user && user.role !== 'admin_plateforme' && !user.onboarding_complete && basePath !== '/onboarding' && !basePath.startsWith('/payment/')) {
+    if (user && user.role !== 'admin_plateforme' && !user.onboarding_complete && basePath !== '/onboarding' && !basePath.startsWith('/payment/') && !basePath.startsWith('/stripe-checkout')) {
       return <OnboardingPage navigate={navigate} user={user} setUser={setUser} />;
     }
     if (basePath.startsWith('/groups/')) {
@@ -149,6 +150,7 @@ export default function App() {
       case '/features':      return <FeaturesPage navigate={navigate} />;
       case '/payment/success': return <PaymentSuccess navigate={navigate} />;
       case '/payment/cancel':  return <PaymentCancel navigate={navigate} />;
+      case '/stripe-checkout': return <StripeCheckout navigate={navigate} />;
       case '/notifications':
       case '/cotisations':
       case '/audit':         return <ComingSoon navigate={navigate} />;
