@@ -63,6 +63,15 @@ export default function App() {
   const [user, setUser]               = useState(null);
   const [pendingCount, setPendingCount] = useState(0);
 
+  /* Handle browser Back & Forward buttons */
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname + window.location.search);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   /* Restore session */
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -78,21 +87,22 @@ export default function App() {
           kyc_status:          kyc.statut_verification,
           onboarding_complete: onboarding.onboarding_complete,
         });
+        
         // Charger le compteur de demandes en attente pour les admins
         if (userData.role === 'admin_groupe') {
           api.getAdminPendingRequests().then(reqs => setPendingCount(reqs.length)).catch(() => {});
         }
         
-        // Respect the current URL if it's a payment callback from Stripe
-        const browserPath = window.location.pathname;
-        const isPaymentCallback = browserPath.startsWith('/payment/') || browserPath.startsWith('/stripe-checkout');
+        // Conserver l'URL actuelle du navigateur lors du rafraîchissement
+        const browserPathName = window.location.pathname;
+        const fullBrowserPath = window.location.pathname + window.location.search;
         
-        if (isPaymentCallback) {
-          setCurrentPath(browserPath + window.location.search);
-        } else if (userData.role === 'admin_plateforme') {
-          setCurrentPath('/admin/dashboard');
+        if (browserPathName === '/' || browserPathName === '') {
+          const target = userData.role === 'admin_plateforme' ? '/admin/dashboard' : (onboarding.onboarding_complete ? '/dashboard' : '/onboarding');
+          window.history.replaceState(null, '', target);
+          setCurrentPath(target);
         } else {
-          setCurrentPath(onboarding.onboarding_complete ? '/dashboard' : '/onboarding');
+          setCurrentPath(fullBrowserPath);
         }
       })
       .catch(() => {
@@ -103,6 +113,9 @@ export default function App() {
 
   const navigate = (path) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (window.location.pathname + window.location.search !== path) {
+      window.history.pushState(null, '', path);
+    }
     setCurrentPath(path);
   };
 

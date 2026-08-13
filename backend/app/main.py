@@ -30,6 +30,20 @@ try:
     with engine.connect() as conn:
         conn.execute(text("ALTER TABLE sinistre ADD COLUMN IF NOT EXISTS motif_rejet TEXT;"))
         conn.execute(text("ALTER TABLE sinistre ADD COLUMN IF NOT EXISTS commentaire_validation TEXT;"))
+        
+        # Mettre à jour nb_sinistres_periode et le coefficient_actuel (+0.20 par sinistre validé) pour toutes les adhésions
+        conn.execute(text("""
+            UPDATE adhesion a
+            SET nb_sinistres_periode = sub.cnt,
+                coefficient_actuel = LEAST(2.00, 1.00 + (sub.cnt * 0.20))
+            FROM (
+                SELECT adhesion_id, COUNT(*) as cnt
+                FROM sinistre
+                WHERE statut = 'validee'
+                GROUP BY adhesion_id
+            ) sub
+            WHERE a.id = sub.adhesion_id;
+        """))
         conn.commit()
 except Exception as e:
     print(f"[DB Migration Warning] {e}")
