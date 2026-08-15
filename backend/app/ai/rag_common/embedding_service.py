@@ -17,8 +17,12 @@ _client: Optional[genai.Client] = None
 
 def _get_client() -> Optional[genai.Client]:
     global _client
-    if _client is None and cfg.GEMINI_API_KEY:
-        _client = genai.Client(api_key=cfg.GEMINI_API_KEY)
+    if _client is None and cfg.GEMINI_API_KEY and "YOUR_GEMINI_API_KEY" not in cfg.GEMINI_API_KEY:
+        try:
+            _client = genai.Client(api_key=cfg.GEMINI_API_KEY)
+        except Exception as e:
+            logger.error(f"Erreur initialisation client Gemini embedding: {e}")
+            _client = None
     return _client
 
 

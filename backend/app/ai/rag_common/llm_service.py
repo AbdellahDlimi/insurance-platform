@@ -14,11 +14,14 @@ logger = logging.getLogger(__name__)
 
 _client: Optional[genai.Client] = None
 
-
-def _get_client() -> Optional[genai.Client]:
+def _get_client() -> Optional[genai.Client]:
     global _client
-    if _client is None and cfg.GEMINI_API_KEY:
-        _client = genai.Client(api_key=cfg.GEMINI_API_KEY)
+    if _client is None and cfg.GEMINI_API_KEY and "YOUR_GEMINI_API_KEY" not in cfg.GEMINI_API_KEY:
+        try:
+            _client = genai.Client(api_key=cfg.GEMINI_API_KEY)
+        except Exception as e:
+            logger.error(f"Erreur initialisation client Gemini: {e}")
+            _client = None
     return _client
 
 
@@ -98,7 +101,35 @@ class LLMService:
     ) -> str:
         client = _get_client()
         if not client:
-            return "Désolé, la clé API Gemini n'est pas configurée." if langue != "ar" else "عذراً، مفتاح API غير مكوّن."
+            if context_chunks:
+                header = (
+                    "⚠️ **Mode Démo (Clé API Gemini non configurée)**\n"
+                    "Voici les informations pertinentes trouvées dans la base de connaissances TrustPool :\n\n"
+                ) if langue != "ar" else (
+                    "⚠️ **الوضع التجريبي (مفتاح API غير مكوّن)**\n"
+                    "إليك المعلومات ذات الصلة التي تم العثور عليها في قاعدة المعرفة TrustPool :\n\n"
+                )
+                
+                formatted_chunks = []
+                for chunk in context_chunks[:2]:
+                    clean_chunk = chunk.strip()
+                    formatted_chunks.append(f"📄 {clean_chunk}")
+                
+                footer = (
+                    "\n\n*(Pour activer les réponses fluides et intelligentes du Copilote, veuillez ajouter une clé `GEMINI_API_KEY` valide dans le fichier `backend/.env`)*"
+                ) if langue != "ar" else (
+                    "\n\n*(لتفعيل إجابات Copilot الذكية، يرجى إضافة مفتاح `GEMINI_API_KEY` صالح في ملف `backend/.env`)*"
+                )
+                
+                return header + "\n\n".join(formatted_chunks) + footer
+            else:
+                return (
+                    "⚠️ **Mode Démo**\n"
+                    "La clé API Gemini n'est pas configurée dans `backend/.env`. Veuillez ajouter `GEMINI_API_KEY` pour activer le Copilote."
+                ) if langue != "ar" else (
+                    "⚠️ **الوضع التجريبي**\n"
+                    "مفتاح API لـ Gemini غير مكوّن في `backend/.env`. يرجى إضافة `GEMINI_API_KEY` لتفعيل Copilot."
+                )
 
         prompt = self.build_prompt(question, context_chunks, history, langue, user_context)
 
