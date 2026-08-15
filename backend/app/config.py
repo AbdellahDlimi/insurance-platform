@@ -20,9 +20,7 @@ CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://loca
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
-<<<<<<< HEAD
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
-=======
 
 # ── AI / RAG (Gemini) ─────────────────────────────────────────────────────────
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
@@ -39,4 +37,3 @@ RAG_SCORE_THRESHOLD = float(os.environ.get("RAG_SCORE_THRESHOLD", "0.3"))
 
 # Langues supportées par le copilote
 RAG_SUPPORTED_LANGUAGES = ["fr", "ar", "en"]
->>>>>>> e05d065 (feat(ai): intégration complète du Copilote RAG multilingue (Phase 1))

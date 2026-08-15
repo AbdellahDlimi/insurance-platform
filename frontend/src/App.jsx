@@ -21,12 +21,8 @@ import { FeaturesPage }     from './pages/Features.jsx';
 import { ProfilePage }      from './pages/Profile.jsx';
 import { PaymentSuccess }   from './pages/PaymentSuccess.jsx';
 import { PaymentCancel }    from './pages/PaymentCancel.jsx';
-<<<<<<< HEAD
 import { StripeCheckout }   from './pages/StripeCheckout.jsx';
-=======
 import ChatWidget           from './pages/ChatWidget.jsx';
-
->>>>>>> e05d065 (feat(ai): intégration complète du Copilote RAG multilingue (Phase 1))
 /* ── Placeholder for future modules ── */
 const ComingSoon = ({ navigate }) => (
   <div style={{
