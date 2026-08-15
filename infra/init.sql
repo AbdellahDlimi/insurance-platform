@@ -263,3 +263,56 @@ CREATE TABLE profil_onboarding (
 -- Rappel : MoteurIA n'a pas de table (service sans état, pas d'attributs
 -- persistés sur le diagramme de classes)
 -- ============================================================================
+
+-- ============================================================================
+-- 17. RAG_DOCUMENT  (stockage des chunks de documents + embeddings vectoriels)
+-- Utilisé par tous les modules AI (Copilote, Chien de Garde, Analyseur, etc.)
+-- ============================================================================
+CREATE TABLE rag_document (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    -- Collection logique : 'faq_fr', 'faq_ar', 'reglement_fr', 'reglement_ar',
+    --                       'sinistre', 'juridique', 'guide_utilisation'
+    collection      VARCHAR(100) NOT NULL,
+    langue          VARCHAR(10) NOT NULL DEFAULT 'fr',  -- 'fr', 'ar', 'both'
+    titre           VARCHAR(255),
+    contenu         TEXT NOT NULL,                       -- chunk de texte brut
+    metadata        JSONB DEFAULT '{}',                  -- groupe_id, source, page, etc.
+    -- Vecteur 768 dimensions (modèle Gemini text-embedding-004)
+    embedding       vector(768),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Index HNSW pour recherche cosine rapide (meilleur pour RAG)
+CREATE INDEX idx_rag_document_embedding_hnsw ON rag_document
+    USING hnsw (embedding vector_cosine_ops)
+    WITH (m = 16, ef_construction = 64);
+
+-- Index GIN full-text pour recherche hybride (French + Arabic aware)
+ALTER TABLE rag_document
+    ADD COLUMN tsv_fr tsvector
+        GENERATED ALWAYS AS (to_tsvector('french', contenu)) STORED;
+CREATE INDEX idx_rag_document_tsv_fr ON rag_document USING GIN(tsv_fr);
+
+-- Index btree classiques pour le filtrage
+CREATE INDEX idx_rag_document_collection ON rag_document(collection);
+CREATE INDEX idx_rag_document_langue ON rag_document(langue);
+CREATE INDEX idx_rag_document_collection_langue ON rag_document(collection, langue);
+
+-- ============================================================================
+-- 18. RAG_CONVERSATION  (historique de conversation du copilote par session)
+-- ============================================================================
+CREATE TABLE rag_conversation (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    utilisateur_id  UUID NOT NULL REFERENCES utilisateur(id) ON DELETE CASCADE,
+    session_id      VARCHAR(100) NOT NULL,  -- identifiant de session frontend
+    role            VARCHAR(20) NOT NULL,   -- 'user' | 'assistant' | 'system'
+    contenu         TEXT NOT NULL,
+    langue_detectee VARCHAR(10),            -- langue détectée de ce message
+    metadata        JSONB DEFAULT '{}',     -- sources utilisées, tokens, etc.
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_rag_conv_user ON rag_conversation(utilisateur_id);
+CREATE INDEX idx_rag_conv_session ON rag_conversation(session_id);
+CREATE INDEX idx_rag_conv_session_created ON rag_conversation(session_id, created_at);
