@@ -145,12 +145,12 @@ class VectorStore:
         # ── 2. Recherche full-text ────────────────────────────────────
         fulltext_sql = text(f"""
             SELECT id,
-                   ts_rank(tsv_fr, plainto_tsquery('french', :query)) AS score,
+                   ts_rank(tsv_fr, websearch_to_tsquery('french', :query)) AS score,
                    ROW_NUMBER() OVER (
-                       ORDER BY ts_rank(tsv_fr, plainto_tsquery('french', :query)) DESC
+                       ORDER BY ts_rank(tsv_fr, websearch_to_tsquery('french', :query)) DESC
                    ) AS rank
             FROM rag_document
-            WHERE tsv_fr @@ plainto_tsquery('french', :query)
+            WHERE tsv_fr @@ websearch_to_tsquery('french', :query)
               {collection_filter}
               {lang_filter}
             ORDER BY score DESC
