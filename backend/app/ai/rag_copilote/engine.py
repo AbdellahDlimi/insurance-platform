@@ -102,14 +102,8 @@ def process_chat(
     history = vs.get_conversation_history(db, request.session_id, limit=10)
 
     # ── 3. Recherche hybride ──────────────────────────────────────────
-    # Construire une requête enrichie combinant le message actuel
-    # avec les 2 derniers échanges pour un meilleur contexte
+    # Utiliser la question exacte de l'utilisateur pour la recherche RAG
     enriched_query = request.message
-    if history and len(history) >= 2:
-        last_exchange = " ".join(
-            m["content"] for m in history[-2:]
-        )
-        enriched_query = f"{last_exchange} {request.message}"
 
     # Chercher dans les 2 langues pour le Maroc (FR + AR)
     search_collections = _COPILOTE_COLLECTIONS
@@ -133,7 +127,7 @@ def process_chat(
             score=round(score, 4),
         )
         for doc, score in results
-        if score >= cfg.RAG_SCORE_THRESHOLD
+        if score > 0
     ]
 
     # ── 6. Génération LLM ─────────────────────────────────────────────

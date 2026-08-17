@@ -100,12 +100,17 @@ def valider_sinistre(
         traite_par_admin_id=admin_id,
     )
 
-    # Débiter le montant approuvé de la cagnotte du groupe
+    # Appliquer le malus (+0.20), incrémenter nb_sinistres et débiter la cagnotte
     try:
-        from app.modules.cagnotte.repository import debiter_cagnotte_par_groupe
-        debiter_cagnotte_par_groupe(session, sinistre.groupe_id, float(data.montant_approuve))
+        from app.modules.cagnotte.service import process_claim_validated
+        process_claim_validated(session, {
+            "adhesion_id": str(sinistre.adhesion_id),
+            "groupe_id": str(sinistre.groupe_id),
+            "utilisateur_id": str(utilisateur_id),
+            "montant_approuve": float(data.montant_approuve),
+        })
     except Exception as e:
-        print(f"[Claims Warning] Impossible de débiter la cagnotte : {e}")
+        print(f"[Claims Warning] Impossible d'appliquer le malus / cagnotte : {e}")
 
     try:
         from app.modules.notifications.repository import create_notification

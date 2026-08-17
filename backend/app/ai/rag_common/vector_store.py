@@ -123,12 +123,13 @@ class VectorStore:
 
         # Embedding de la requête
         query_embedding = self.embed.embed_query(query)
+        is_mock_embedding = all(v == 0.0 for v in query_embedding)
 
         # Filtre sur les collections
         collection_filter = "AND collection = ANY(:collections)"
         lang_filter = "AND langue = :langue" if langue else ""
 
-        # ── 1. Recherche vectorielle ──────────────────────────────────
+        # ── 1. Recherche vectorielle (uniquement si vraie clé API présente) ──
         vector_sql = text(f"""
             SELECT id,
                    1 - (embedding <=> CAST(:embedding AS vector)) AS score,
@@ -144,12 +145,12 @@ class VectorStore:
         # ── 2. Recherche full-text ────────────────────────────────────
         fulltext_sql = text(f"""
             SELECT id,
-                   ts_rank(tsv_fr, plainto_tsquery('french', :query)) AS score,
+                   ts_rank(tsv_fr, websearch_to_tsquery('french', :query)) AS score,
                    ROW_NUMBER() OVER (
-                       ORDER BY ts_rank(tsv_fr, plainto_tsquery('french', :query)) DESC
+                       ORDER BY ts_rank(tsv_fr, websearch_to_tsquery('french', :query)) DESC
                    ) AS rank
             FROM rag_document
-            WHERE tsv_fr @@ plainto_tsquery('french', :query)
+            WHERE tsv_fr @@ websearch_to_tsquery('french', :query)
               {collection_filter}
               {lang_filter}
             ORDER BY score DESC
@@ -164,6 +165,35 @@ class VectorStore:
         }
         if langue:
             params["langue"] = langue
+
+        # Si l'embedding est factice (tous zéros), on fait une recherche textuelle pure
+        if is_mock_embedding:
+            try:
+                fulltext_rows = db.execute(fulltext_sql, params).fetchall()
+            except Exception as e:
+                logger.error(f"Erreur fulltext search (mode démo): {e}")
+                return []
+            
+            top_ids = [str(row.id) for row in fulltext_rows[:top_k]]
+            if not top_ids:
+                # Si aucun résultat textuel, renvoyer les premiers documents par défaut
+                try:
+                    default_docs = db.query(RagDocument).filter(
+                        RagDocument.collection.in_(collections)
+                    ).limit(top_k).all()
+                    return [(doc, 1.0) for doc in default_docs]
+                except Exception:
+                    return []
+            
+            docs = db.query(RagDocument).filter(
+                RagDocument.id.in_([uuid.UUID(i) for i in top_ids])
+            ).all()
+            docs_by_id = {str(d.id): d for d in docs}
+            return [
+                (docs_by_id[doc_id], 1.0 / (60 + i))
+                for i, doc_id in enumerate(top_ids)
+                if doc_id in docs_by_id
+            ]
 
         try:
             vector_rows = db.execute(vector_sql, params).fetchall()
