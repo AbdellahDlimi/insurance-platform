@@ -20,3 +20,7 @@ httpx
 stripe
 scikit-learn>=1.4
 numpy>=1.26
+# ── RAG / AI ──────────────────────────────
+google-genai>=1.0         # Nouveau SDK Gemini (from google import genai)
+pgvector>=0.3.6           # Support pgvector pour SQLAlchemy (Vector type)
+PyMuPDF>=1.24             # Parsing PDF (import pymupdf / fitz)

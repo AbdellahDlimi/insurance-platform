@@ -22,6 +22,7 @@ import { ProfilePage }      from './pages/Profile.jsx';
 import { PaymentSuccess }   from './pages/PaymentSuccess.jsx';
 import { PaymentCancel }    from './pages/PaymentCancel.jsx';
 import { StripeCheckout }   from './pages/StripeCheckout.jsx';
+import ChatWidget           from './pages/ChatWidget.jsx';
 /* ── Placeholder for future modules ── */
 const ComingSoon = ({ navigate }) => (
   <div style={{
@@ -174,18 +175,22 @@ export default function App() {
   const hideFooter = ['/login', '/register'].includes(currentPath);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--ink)', color: 'var(--paper)', overflowX: 'hidden' }}>
-      <Navbar currentPath={currentPath} navigate={navigate} user={user} logout={handleLogout} pendingCount={pendingCount} />
+    <>
+      <div style={{ minHeight: '100vh', background: 'var(--ink)', color: 'var(--paper)', overflowX: 'hidden' }}>
+        <Navbar currentPath={currentPath} navigate={navigate} user={user} logout={handleLogout} pendingCount={pendingCount} />
 
-      <main style={{ minHeight: '100vh' }}>
-        <AnimatePresence mode="wait">
-          <React.Fragment key={currentPath}>
-            {renderRoute()}
-          </React.Fragment>
-        </AnimatePresence>
-      </main>
+        <main style={{ minHeight: '100vh' }}>
+          <AnimatePresence mode="wait">
+            <React.Fragment key={currentPath}>
+              {renderRoute()}
+            </React.Fragment>
+          </AnimatePresence>
+        </main>
 
-      {!hideFooter && <Footer navigate={navigate} />}
-    </div>
+        {!hideFooter && <Footer navigate={navigate} />}
+      </div>
+      {/* Copilote IA — hors du div principal pour éviter les problèmes d'overflow */}
+      {user && user.role !== 'admin_plateforme' && <ChatWidget />}
+    </>
   );
 }
