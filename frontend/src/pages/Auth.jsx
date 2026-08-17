@@ -6,7 +6,7 @@ import { pageVariants, Btn, Field, AlertBanner, DisplayItalic } from '../ui.jsx'
 
 export const AuthPage = ({ type, navigate, user, setUser }) => {
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
+  const [error, setError] = useState('');
   const isLogin = type === 'login';
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export const AuthPage = ({ type, navigate, user, setUser }) => {
     setLoading(true);
     setError('');
     const fd = new FormData(e.target);
-    const email    = fd.get('email');
+    const email = fd.get('email');
     const password = fd.get('password');
     const pseudonyme = fd.get('pseudonyme') || '';
     try {
@@ -37,7 +37,7 @@ export const AuthPage = ({ type, navigate, user, setUser }) => {
         const isAdmin = res.user.role === 'admin_plateforme';
         setUser({
           ...res.user,
-          kyc_status:          kyc.statut_verification,
+          kyc_status: kyc.statut_verification,
           onboarding_complete: onboarding.onboarding_complete,
         });
         if (isAdmin) {
@@ -59,9 +59,9 @@ export const AuthPage = ({ type, navigate, user, setUser }) => {
   };
 
   return (
-    <motion.div {...pageVariants} style={{ minHeight: '100vh', display: 'flex' }}>
+    <motion.div {...pageVariants} className="auth-page-container" style={{ minHeight: '100vh', display: 'flex' }}>
       {/* ── Left form panel ── */}
-      <div style={{ width: '100%', maxWidth: '520px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(2rem, 5vw, 4rem)', paddingTop: '7rem' }}>
+      <div className="auth-panel-left" style={{ width: '100%', maxWidth: '520px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(2rem, 5vw, 4rem)', paddingTop: '7rem' }}>
         <div style={{ width: '100%' }}>
           <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', marginBottom: '2.5rem', display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
             <img src="/icone.png" alt="TrustPool" style={{ height: '2rem', width: 'auto', objectFit: 'contain' }}
@@ -104,11 +104,11 @@ export const AuthPage = ({ type, navigate, user, setUser }) => {
               onMouseOut={e => e.currentTarget.style.backgroundColor = '#ffffff'}
             >
               <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                <path fill="none" d="M0 0h48v48H0z"/>
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                <path fill="none" d="M0 0h48v48H0z" />
               </svg>
               {isLogin ? 'Se connecter avec Google' : "S'inscrire avec Google"}
             </button>
@@ -146,25 +146,44 @@ export const AuthPage = ({ type, navigate, user, setUser }) => {
 
       {/* ── Right decorative panel ── */}
       <div style={{
-        flex: 1, display: 'none', position: 'relative', overflow: 'hidden',
-        background: 'var(--ink-90)', borderLeft: '1px solid var(--gold-line)',
+        position: 'relative', overflow: 'hidden',
+        background: 'var(--ink-90)',
       }} className="auth-panel-right">
-        {/* Watermark text */}
+        {/* KMS Security Presentation Video */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 0,
+          }}
+          aria-label="Présentation de la sécurité KMS TrustPool"
+        >
+          <source src="/TITRE_TrustPool_—_Connexion.mp4" type="video/mp4" />
+          Votre navigateur ne prend pas en charge la lecture de cette vidéo.
+        </video>
+
+        {/* Dark / translucent overlay */}
         <div style={{
-          position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: 'var(--font-display)', fontSize: '22vw', fontWeight: 900, color: 'rgba(200,169,110,0.04)',
-          userSelect: 'none', letterSpacing: '-0.05em', fontStyle: 'italic',
-        }}>
-          KYC
-        </div>
-        {/* Ambient glow */}
-        <div style={{ position: 'absolute', top: '30%', left: '30%', width: '20rem', height: '20rem' }} className="blur-gold" />
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(12, 12, 12, 0.4)',
+          zIndex: 1,
+        }} />
 
         {/* Content card */}
-        <div style={{
-          position: 'absolute', bottom: '3rem', left: '3rem', right: '3rem',
+        <div className="auth-content-card" style={{
+          position: 'absolute',
           background: 'rgba(12,12,12,0.85)', border: '1px solid var(--gold-line)',
-          padding: '2rem', backdropFilter: 'blur(20px)',
+          backdropFilter: 'blur(20px)',
         }}>
           <p className="text-label" style={{ marginBottom: '0.75rem' }}>Sécurité garantie</p>
           <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.125rem', fontWeight: 400, color: 'var(--paper)', lineHeight: 1.5 }}>
@@ -172,11 +191,11 @@ export const AuthPage = ({ type, navigate, user, setUser }) => {
           </p>
           <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div style={{ display: 'flex' }}>
-              {[0,1,2].map(i => (
+              {[0, 1, 2].map(i => (
                 <div key={i} style={{
                   width: '2.25rem', height: '2.25rem', borderRadius: '50%',
                   border: '2px solid var(--ink-90)',
-                  background: `linear-gradient(135deg, hsl(${220+i*20},40%,35%), hsl(${40-i*5},60%,50%))`,
+                  background: `linear-gradient(135deg, hsl(${220 + i * 20},40%,35%), hsl(${40 - i * 5},60%,50%))`,
                   marginLeft: i > 0 ? '-0.5rem' : 0,
                 }} />
               ))}
@@ -187,7 +206,56 @@ export const AuthPage = ({ type, navigate, user, setUser }) => {
       </div>
 
       <style>{`
-        @media (min-width: 900px) { .auth-panel-right { display: block !important; } }
+        .auth-page-container {
+          display: flex;
+          flex-direction: column;
+          min-height: 100vh;
+        }
+        
+        .auth-panel-left {
+          margin: 0 auto;
+        }
+        
+        .auth-panel-right {
+          display: block;
+          position: relative;
+          overflow: hidden;
+          height: 320px;
+          width: 100%;
+          border-top: 1px solid var(--gold-line);
+        }
+        
+        .auth-content-card {
+          bottom: 1.5rem;
+          left: 1.5rem;
+          right: 1.5rem;
+          padding: 1.25rem;
+          z-index: 2;
+        }
+        
+        @media (min-width: 900px) {
+          .auth-page-container {
+            flex-direction: row;
+          }
+          
+          .auth-panel-left {
+            margin: 0;
+          }
+          
+          .auth-panel-right {
+            flex: 1;
+            height: auto;
+            border-top: none;
+            border-left: 1px solid var(--gold-line);
+          }
+          
+          .auth-content-card {
+            bottom: 3rem;
+            left: 3rem;
+            right: 3rem;
+            padding: 2rem;
+          }
+        }
       `}</style>
     </motion.div>
   );
