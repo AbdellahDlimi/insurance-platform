@@ -106,6 +106,7 @@ def get_payment(
     """
     Consulte les détails d'un paiement spécifique. 
     Vérifie que le paiement appartient bien à l'utilisateur connecté pour des raisons de sécurité.
+    Synchronise automatiquement l'état auprès de Stripe si le webhook n'a pas encore été reçu.
     """
     payment = db.query(Payment).filter(Payment.id == payment_id).first()
     if not payment:
@@ -113,6 +114,24 @@ def get_payment(
 
     if str(payment.user_id) != current_user.user_id:
         raise HTTPException(status_code=403, detail="Non autorisé à consulter ce paiement.")
+
+    # Synchronisation automatique en temps réel auprès de Stripe si encore en attente
+    if payment.status == "PENDING" and payment.stripe_session_id:
+        if not payment.stripe_session_id.startswith("sim_") and cfg.STRIPE_SECRET_KEY:
+            try:
+                stripe.api_key = cfg.STRIPE_SECRET_KEY
+                session = stripe.checkout.Session.retrieve(payment.stripe_session_id)
+                if session.payment_status == "paid":
+                    payment_intent_id = session.payment_intent or f"pi_{session.id}"
+                    payment = payment_service.confirm_payment_via_webhook(
+                        db, str(payment.id), payment_intent_id
+                    )
+                elif session.status == "expired":
+                    payment.status = "CANCELLED"
+                    db.commit()
+                    db.refresh(payment)
+            except Exception as e:
+                print(f"[Payment Sync] Stripe session verification info: {e}")
 
     return payment
 
