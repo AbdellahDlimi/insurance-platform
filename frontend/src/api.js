@@ -100,6 +100,34 @@ export const api = {
     const res = await axiosClient.post('/claims/', data);
     return res.data;
   },
+  createClaimWithFile: async (formData) => {
+    const res = await axiosClient.post('/claims/with-file', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data;
+  },
+  getClaimPieces: async (sinistreId) => {
+    const res = await axiosClient.get(`/claims/${sinistreId}/pieces`);
+    return res.data;
+  },
+  getClaimAlertes: async (sinistreId) => {
+    const res = await axiosClient.get(`/claims/${sinistreId}/alertes`);
+    return res.data;
+  },
+  fetchKycDocumentBlob: async (kycId) => {
+    const res = await axiosClient.get(`/users_kyc/kyc/${kycId}/document`, {
+      responseType: 'blob',
+    });
+    return res.data;
+  },
+  fetchClaimPieceBlob: async (sinistreId, pieceId) => {
+    const res = await axiosClient.get(`/claims/${sinistreId}/pieces/${pieceId}/file`, {
+      responseType: 'blob',
+    });
+    return res.data;
+  },
   validateClaim: async (sinistreId, montantApprouve, commentaireValidation) => {
     const res = await axiosClient.post(`/claims/${sinistreId}/validate`, {
       montant_approuve: parseFloat(montantApprouve),

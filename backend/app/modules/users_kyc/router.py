@@ -1,6 +1,9 @@
+import os
+import mimetypes
 import uuid
 
 from fastapi import APIRouter, Depends, BackgroundTasks, Form, UploadFile, File, HTTPException, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user, TokenPayload
@@ -145,6 +148,47 @@ def review_kyc(
         "verifie_le": coffre.verifie_le,
         "pseudonyme": user.pseudonyme if user else None
     }
+
+
+from fastapi.responses import FileResponse, Response
+from app.core import storage
+
+@router.get("/kyc/{kyc_id}/document", summary="Visualiser la pièce d'identité KYC (Conformité uniquement)")
+def get_kyc_document(
+    kyc_id: uuid.UUID,
+    current_user: TokenPayload = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    """
+    Retourne le fichier physique (Passeport / CIN en Image ou PDF).
+    Accessible STRICTEMENT à l'équipe de conformité / admin_plateforme ou au propriétaire du compte.
+    """
+    coffre = repository.get_kyc_by_id(db, kyc_id)
+    if not coffre:
+        raise HTTPException(status_code=404, detail="Dossier KYC introuvable")
+
+    is_admin = current_user.role in ["admin_plateforme", "equipe_conformite"]
+    is_owner = str(coffre.utilisateur_id) == current_user.user_id
+
+    if not (is_admin or is_owner):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès réservé à l'équipe de conformité")
+
+    if not coffre.document_url:
+        raise HTTPException(status_code=404, detail="Aucun document associé à ce KYC")
+
+    # Récupération via MinIO / S3 ou fallback local
+    file_bytes, mime_type = storage.get_file_bytes(coffre.document_url)
+    if not file_bytes:
+        raise HTTPException(status_code=404, detail="Fichier physique introuvable sur le stockage")
+
+    filename = os.path.basename(coffre.document_url)
+    return Response(
+        content=file_bytes,
+        media_type=mime_type or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'}
+    )
+
+
 
 
 @router.get("/kyc/status", response_model=KYCStatusOut)

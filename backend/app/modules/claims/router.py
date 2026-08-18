@@ -17,13 +17,19 @@ from app.modules.claims import repository
 router = APIRouter(prefix="/claims", tags=["claims"])
 
 
+import os
+import mimetypes
+from fastapi import Form, UploadFile, File
+from fastapi.responses import FileResponse
+from app.modules.groups.models import Adhesion
+
 # ── Déclaration d'un sinistre ────────────────────────────────────────────────
 
 @router.post(
     "/",
     response_model=ClaimResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Déclarer un nouveau sinistre",
+    summary="Déclarer un nouveau sinistre (JSON)",
 )
 def create_claim(
     data: ClaimCreate,
@@ -33,6 +39,52 @@ def create_claim(
     """Un membre déclare un sinistre. Émet l'event Kafka 'claim.created'."""
     sinistre = service.declare_sinistre(
         session, data, utilisateur_id=UUID(current_user.user_id)
+    )
+    return sinistre
+
+
+@router.post(
+    "/with-file",
+    response_model=ClaimResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Déclarer un nouveau sinistre avec pièce justificative (Multipart)",
+)
+async def create_claim_with_file(
+    adhesion_id: UUID = Form(...),
+    groupe_id: UUID = Form(...),
+    description: str = Form(...),
+    montant_declare: float = Form(...),
+    file: UploadFile = File(None),
+    current_user: TokenPayload = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """
+    Déclare un sinistre avec téléversement de justificatif (attestation, facture, constat).
+    Exécute automatiquement l'analyseur IA de preuves et le calcul du score de fraude.
+    """
+    file_bytes = None
+    filename = None
+    content_type = None
+
+    if file and file.filename:
+        file_bytes = await file.read()
+        filename = file.filename
+        content_type = file.content_type
+
+    data = ClaimCreate(
+        adhesion_id=adhesion_id,
+        groupe_id=groupe_id,
+        description=description,
+        montant_declare=montant_declare,
+    )
+
+    sinistre = service.declare_sinistre(
+        session,
+        data=data,
+        utilisateur_id=UUID(current_user.user_id),
+        file_bytes=file_bytes,
+        filename=filename,
+        content_type=content_type,
     )
     return sinistre
 
@@ -80,7 +132,7 @@ def get_claim(
     return sinistre
 
 
-# ── Pièces justificatives ───────────────────────────────────────────────────
+# ── Pièces justificatives & Fichiers ─────────────────────────────────────────
 
 @router.get(
     "/{sinistre_id}/pieces",
@@ -93,6 +145,56 @@ def list_pieces(
     session: Session = Depends(get_session),
 ):
     return repository.list_pieces_by_sinistre(session, sinistre_id)
+
+
+from fastapi.responses import FileResponse, Response
+from app.core import storage
+
+@router.get(
+    "/{sinistre_id}/pieces/{piece_id}/file",
+    summary="Visualiser / Télécharger le fichier d'une pièce justificative",
+)
+def get_piece_file(
+    sinistre_id: UUID,
+    piece_id: UUID,
+    current_user: TokenPayload = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """
+    Retourne le fichier brut (Image / PDF) d'une pièce justificative.
+    Accessible uniquement à l'auteur du sinistre, à l'admin du groupe, ou à l'équipe conformité.
+    """
+    sinistre = service.get_sinistre(session, sinistre_id)
+    if not sinistre:
+        raise HTTPException(status_code=404, detail="Sinistre non trouvé")
+
+    adhesion = session.query(Adhesion).filter(Adhesion.id == sinistre.adhesion_id).first()
+    is_owner = adhesion and str(adhesion.utilisateur_id) == current_user.user_id
+    is_group_admin = current_user.role == "admin_groupe"
+    is_compliance = current_user.role in ["admin_plateforme", "equipe_conformite"]
+
+    if not (is_owner or is_group_admin or is_compliance):
+        raise HTTPException(status_code=403, detail="Accès non autorisé à cette pièce justificative")
+
+    piece = repository.get_piece_by_id(session, piece_id)
+    if not piece or piece.sinistre_id != sinistre_id:
+        raise HTTPException(status_code=404, detail="Pièce justificative non trouvée")
+
+    if not piece.hdfs_url:
+        raise HTTPException(status_code=404, detail="Aucun fichier associé à cette pièce justificative")
+
+    # Récupération via MinIO / S3 ou fallback local
+    file_bytes, mime_type = storage.get_file_bytes(piece.hdfs_url)
+    if not file_bytes:
+        raise HTTPException(status_code=404, detail="Fichier introuvable sur le stockage")
+
+    filename = os.path.basename(piece.hdfs_url)
+    return Response(
+        content=file_bytes,
+        media_type=mime_type or piece.type_fichier or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'}
+    )
+
 
 
 # ── Alertes de fraude ────────────────────────────────────────────────────────
@@ -108,6 +210,7 @@ def list_alertes(
     session: Session = Depends(get_session),
 ):
     return repository.list_alertes_by_sinistre(session, sinistre_id)
+
 
 
 # ── Validation / Rejet (admin_groupe uniquement) ────────────────────────────

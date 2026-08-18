@@ -6,6 +6,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+import os
 from app.modules.claims import repository, events
 from app.modules.claims.schemas import ClaimCreate, ClaimValidate, ClaimReject
 from app.modules.claims.models import Sinistre
@@ -15,12 +16,17 @@ def declare_sinistre(
     session: Session,
     data: ClaimCreate,
     utilisateur_id: UUID,
+    file_bytes: bytes | None = None,
+    filename: str | None = None,
+    content_type: str | None = None,
 ) -> Sinistre:
     """
     Déclare un nouveau sinistre :
     1. Insère en base (statut = en_attente)
-    2. Crée une notification in-app pour l'utilisateur
-    3. Émet l'event Kafka 'claim.created'
+    2. Si un justificatif est fourni, exécute l'analyseur IA (OCR + Détection de fraude)
+    3. Crée une alerte de fraude si nécessaire
+    4. Crée une notification in-app pour l'utilisateur
+    5. Émet l'event Kafka 'claim.created'
     """
     sinistre = repository.create_sinistre(
         session,
@@ -30,13 +36,65 @@ def declare_sinistre(
         montant_declare=data.montant_declare,
     )
 
+    # Analyse IA et stockage de la pièce justificative si fournie
+    if file_bytes and filename:
+        try:
+            from app.core import storage
+            object_key = f"sinistres/{sinistre.id}/{filename}"
+            saved_path = storage.upload_bytes(file_bytes, object_key, content_type=content_type)
+
+            from app.ai.rag_analyseur_preuves.engine import analyser_preuve
+            analysis = analyser_preuve(
+                file_bytes=file_bytes,
+                filename=filename,
+                description=data.description,
+                montant_declare=float(data.montant_declare),
+            )
+
+            # Enregistrer la pièce justificative avec la référence de stockage et le texte OCR extrait
+            repository.create_piece_justificative(
+                session,
+                sinistre_id=sinistre.id,
+                hdfs_url=saved_path,
+                type_fichier=content_type or "application/pdf",
+                texte_ocr=analysis.texte_extrait,
+            )
+
+            # Mettre à jour le sinistre avec le score IA et le résumé
+            sinistre = repository.update_sinistre(
+                session,
+                sinistre,
+                score_fraude=analysis.score_fraude,
+                resume_ia=analysis.resume_ia,
+            )
+
+            # Déclencher une alerte fraude si suspect
+            if analysis.is_fraud_suspected or analysis.score_fraude >= 0.25 or analysis.anomalies:
+                repository.create_alerte_fraude(
+                    session,
+                    sinistre_id=sinistre.id,
+                    score=analysis.score_fraude,
+                    niveau_severite=analysis.niveau_severite,
+                    explication_ia=analysis.explication_ia,
+                )
+        except Exception as e:
+            print(f"[Claims AI Analysis Error] {e}")
+    else:
+        # Résumé par défaut pour déclaration sans fichier
+        sinistre = repository.update_sinistre(
+            session,
+            sinistre,
+            score_fraude=0.05,
+            resume_ia=f"Sinistre déclaré de {data.montant_declare:.2f} €. Description: {data.description[:150]}.",
+        )
+
     try:
         from app.modules.notifications.repository import create_notification
         create_notification(
             session,
             utilisateur_id=utilisateur_id,
             n_type="claim_submitted",
-            contenu=f"Votre sinistre d'un montant de {sinistre.montant_declare} € a bien été enregistré.",
+            contenu=f"Votre sinistre d'un montant de {sinistre.montant_declare} € a bien été enregistré et analysé par l'IA.",
         )
     except Exception as e:
         print(f"[Claims Notification Warning] {e}")
@@ -51,6 +109,7 @@ def declare_sinistre(
     )
 
     return sinistre
+
 
 
 def get_sinistre(session: Session, sinistre_id: UUID) -> Sinistre | None:

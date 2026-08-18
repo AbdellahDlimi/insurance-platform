@@ -11,6 +11,7 @@ export const DeclareClaimPage = ({ navigate }) => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]         = useState(null);
   const [formData, setFormData]   = useState({ adhesion_id: '', groupe_id: '', description: '', montant_declare: '' });
+  const [selectedFile, setSelectedFile] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -50,12 +51,28 @@ export const DeclareClaimPage = ({ navigate }) => {
     if (adhesion) setFormData(p => ({ ...p, adhesion_id: adhesion.id, groupe_id: adhesion.groupe_id }));
   };
 
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.description || !formData.montant_declare) { setError('Veuillez remplir tous les champs.'); return; }
     setSubmitting(true); setError(null);
     try {
-      await api.createClaim({ ...formData, montant_declare: parseFloat(formData.montant_declare) });
+      if (selectedFile) {
+        const fd = new FormData();
+        fd.append('adhesion_id', formData.adhesion_id);
+        fd.append('groupe_id', formData.groupe_id);
+        fd.append('description', formData.description);
+        fd.append('montant_declare', formData.montant_declare);
+        fd.append('file', selectedFile);
+        await api.createClaimWithFile(fd);
+      } else {
+        await api.createClaim({ ...formData, montant_declare: parseFloat(formData.montant_declare) });
+      }
       navigate('/claims');
     } catch (err) {
       setError(err.response?.data?.detail || 'Une erreur est survenue.');
@@ -79,7 +96,7 @@ export const DeclareClaimPage = ({ navigate }) => {
           Déclarer un <DisplayItalic>sinistre</DisplayItalic>
         </h1>
         <p style={{ color: 'var(--paper-dim)', fontSize: '0.9375rem', fontWeight: 300, marginBottom: '2.5rem' }}>
-          Fournissez les détails de votre sinistre. Sélectionnez le groupe d'assurance concerné par cette déclaration.
+          Fournissez les détails et votre justificatif (attestation, facture ou constat). L'IA analysera automatiquement la pièce pour accélérer le traitement.
         </p>
 
         <Card gold>
@@ -120,10 +137,10 @@ export const DeclareClaimPage = ({ navigate }) => {
               />
 
               <div>
-                <label className="input-label">Description détaillée</label>
+                <label className="input-label">Description détaillée des circonstances</label>
                 <textarea
                   className="input-field"
-                  rows="5"
+                  rows="4"
                   placeholder="Décrivez les circonstances du sinistre (min. 10 caractères)…"
                   value={formData.description}
                   onChange={e => setFormData({ ...formData, description: e.target.value })}
@@ -132,9 +149,50 @@ export const DeclareClaimPage = ({ navigate }) => {
                 />
               </div>
 
+              {/* Pièce Justificative Upload */}
+              <div>
+                <label className="input-label">Pièce Justificative (Attestation, Facture, Devis, Constat)</label>
+                <div style={{
+                  border: '1px dashed rgba(200,169,110,0.35)',
+                  background: 'var(--ink-90)',
+                  borderRadius: 6,
+                  padding: '1.25rem',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  position: 'relative',
+                }}>
+                  <input
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg"
+                    onChange={handleFileChange}
+                    style={{
+                      position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                      opacity: 0, cursor: 'pointer'
+                    }}
+                  />
+                  {selectedFile ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                      <span style={{ color: 'var(--gold)', fontWeight: 600 }}>📄 {selectedFile.name}</span>
+                      <span style={{ color: 'var(--paper-dim)', fontSize: '0.75rem' }}>({(selectedFile.size / 1024).toFixed(0)} Ko)</span>
+                    </div>
+                  ) : (
+                    <div>
+                      <p style={{ color: 'var(--paper)', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+                        Cliquez ou glissez-déposez votre justificatif ici
+                      </p>
+                      <p style={{ color: 'var(--paper-dim)', fontSize: '0.75rem', margin: 0 }}>
+                        Formats acceptés : PDF, PNG, JPG (Max 10 Mo) • 🧠 Analyse IA automatique
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(240,237,230,0.06)' }}>
                 <Btn type="button" variant="ghost" onClick={() => navigate('/dashboard')}>Annuler</Btn>
-                <Btn type="submit" variant="primary" loading={submitting} style={{ flex: 1 }}>Envoyer la déclaration</Btn>
+                <Btn type="submit" variant="primary" loading={submitting} style={{ flex: 1 }}>
+                  {submitting ? 'Analyse IA & Soumission…' : 'Envoyer la déclaration'}
+                </Btn>
               </div>
             </form>
           )}
@@ -146,6 +204,30 @@ export const DeclareClaimPage = ({ navigate }) => {
 
 /* ── Claim Detail Modal ── */
 const ClaimDetailModal = ({ claim, onClose }) => {
+  const [pieces, setPieces] = useState([]);
+  const [loadingPieces, setLoadingPieces] = useState(true);
+  const [previewFile, setPreviewFile] = useState(null);
+
+  useEffect(() => {
+    if (claim?.id) {
+      api.getClaimPieces(claim.id)
+        .then(data => setPieces(data || []))
+        .catch(err => console.error('Erreur chargement pièces:', err))
+        .finally(() => setLoadingPieces(false));
+    }
+  }, [claim]);
+
+  const handleOpenPiece = async (piece) => {
+    try {
+      const blob = await api.fetchClaimPieceBlob(claim.id, piece.id);
+      const blobUrl = URL.createObjectURL(blob);
+      const isPdf = (piece.hdfs_url || '').toLowerCase().endsWith('.pdf') || piece.type_fichier?.includes('pdf');
+      setPreviewFile({ blobUrl, isPdf, filename: piece.hdfs_url?.split('/').pop() || 'piece_justificative' });
+    } catch (e) {
+      alert("Impossible de charger la pièce justificative.");
+    }
+  };
+
   if (!claim) return null;
 
   return (
@@ -156,7 +238,7 @@ const ClaimDetailModal = ({ claim, onClose }) => {
       onClick={onClose}
       style={{
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        background: 'rgba(12,12,12,0.85)', backdropFilter: 'blur(8px)',
+        background: 'rgba(12,12,12,0.88)', backdropFilter: 'blur(8px)',
         zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '1rem'
       }}
@@ -168,8 +250,8 @@ const ClaimDetailModal = ({ claim, onClose }) => {
         onClick={e => e.stopPropagation()}
         style={{
           background: 'var(--ink)', border: '1px solid var(--gold-line)',
-          borderRadius: '8px', width: '100%', maxWidth: '520px',
-          overflow: 'hidden', display: 'flex', flexDirection: 'column',
+          borderRadius: '8px', width: '100%', maxWidth: '600px',
+          maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column',
           boxShadow: '0 20px 40px rgba(0,0,0,0.5)', padding: '2rem'
         }}
       >
@@ -209,6 +291,45 @@ const ClaimDetailModal = ({ claim, onClose }) => {
             </div>
           </div>
 
+          {/* AI Summary Block */}
+          {claim.resume_ia && (
+            <div style={{ background: 'rgba(200,169,110,0.06)', border: '1px solid rgba(200,169,110,0.2)', padding: '1rem', borderRadius: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  🧠 Synthèse & Analyse IA (TrustPool Copilot)
+                </span>
+              </div>
+              <p style={{ color: 'var(--paper)', fontSize: '0.875rem', lineHeight: 1.5, margin: 0 }}>
+                {claim.resume_ia}
+              </p>
+            </div>
+          )}
+
+          {/* Pieces Justificatives */}
+          <div>
+            <p style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(240,237,230,0.4)', marginBottom: '0.5rem' }}>
+              Pièces Justificatives fournies ({pieces.length})
+            </p>
+            {loadingPieces ? (
+              <p style={{ color: 'var(--paper-dim)', fontSize: '0.8125rem' }}>Chargement des pièces…</p>
+            ) : pieces.length === 0 ? (
+              <p style={{ color: 'var(--paper-dim)', fontSize: '0.8125rem' }}>Aucune pièce justificative attachée.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {pieces.map(p => (
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--ink-90)', padding: '0.75rem 1rem', borderRadius: 4, border: '1px solid rgba(240,237,230,0.08)' }}>
+                    <span style={{ color: 'var(--paper)', fontSize: '0.8125rem' }}>
+                      📄 {p.hdfs_url ? p.hdfs_url.split('/').pop() : 'Document justificatif'}
+                    </span>
+                    <Btn variant="secondary" onClick={() => handleOpenPiece(p)} style={{ fontSize: '0.75rem', padding: '0.25rem 0.75rem' }}>
+                      Voir le document
+                    </Btn>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {claim.status === 'validee' && claim.montant_approuve && (
             <div style={{ background: 'rgba(90,158,124,0.08)', borderLeft: '3px solid var(--success)', padding: '1rem', borderRadius: 4 }}>
               <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--success)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.25rem' }}>Montant Approuvé & Indemnisé</p>
@@ -218,7 +339,7 @@ const ClaimDetailModal = ({ claim, onClose }) => {
               {claim.commentaire_validation && (
                 <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(90,158,124,0.2)' }}>
                   <p style={{ fontSize: '0.75rem', color: 'var(--paper-dim)', fontWeight: 500, marginBottom: '0.25rem' }}>
-                    Note / Raison de l'ajustement du montant par l'admin :
+                    Note de l'administrateur :
                   </p>
                   <p style={{ color: 'var(--paper)', fontSize: '0.875rem', lineHeight: 1.4, margin: 0 }}>
                     {claim.commentaire_validation}
@@ -239,6 +360,32 @@ const ClaimDetailModal = ({ claim, onClose }) => {
             </div>
           )}
         </div>
+
+        {/* Modal de prévisualisation de la pièce jointe */}
+        {previewFile && (
+          <div
+            onClick={() => setPreviewFile(null)}
+            style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(5,5,8,0.95)', zIndex: 999999,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+            }}
+          >
+            <div onClick={e => e.stopPropagation()} style={{ background: 'var(--ink)', padding: '1.5rem', borderRadius: 8, maxWidth: '800px', width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4 style={{ color: 'var(--paper)', margin: 0 }}>{previewFile.filename}</h4>
+                <button onClick={() => setPreviewFile(null)} style={{ background: 'none', border: 'none', color: 'var(--paper)', cursor: 'pointer' }}><X size={20} /></button>
+              </div>
+              <div style={{ flex: 1, overflow: 'auto', minHeight: '350px' }}>
+                {previewFile.isPdf ? (
+                  <iframe src={previewFile.blobUrl} title="Aperçu Justificatif" style={{ width: '100%', height: '500px', border: 'none', background: '#fff' }} />
+                ) : (
+                  <img src={previewFile.blobUrl} alt="Justificatif" style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain', margin: '0 auto', display: 'block' }} />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
           <Btn variant="primary" onClick={onClose}>Fermer</Btn>

@@ -97,16 +97,16 @@ def _valider_kyc_mock(db_session_factory, user_id):
     pass
 
 
+from app.core import storage
+
 def submit_kyc(db: Session, user_id: uuid.UUID, data: dict, file: UploadFile) -> CoffreKYC:
     """
-    Chiffre les données KYC en utilisant Fernet (KMS) et enregistre le fichier.
+    Chiffre les données KYC en utilisant Fernet (KMS) et stocke le document justificatif
+    (CIN, passeport) de manière sécurisée sur MinIO / S3 Object Storage.
     """
-    # Enregistrement du fichier
-    upload_dir = f"uploads/kyc/{user_id}"
-    os.makedirs(upload_dir, exist_ok=True)
-    file_path = os.path.join(upload_dir, file.filename)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    # Enregistrement du fichier sur MinIO / S3
+    object_key = f"kyc/{user_id}/{file.filename}"
+    document_path = storage.upload_file(file, object_key)
 
     kyc_data = {
         "nom_complet": data.get("nom_complet"),
@@ -126,7 +126,7 @@ def submit_kyc(db: Session, user_id: uuid.UUID, data: dict, file: UploadFile) ->
         ref_cle_kms="fernet_key",
         fournisseur_api="Manual",
         statut_verification="pending",
-        document_url=file_path
+        document_url=document_path
     )
     
     # Instant KYC validation mock for tests (asynchronous)

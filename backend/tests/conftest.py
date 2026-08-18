@@ -41,9 +41,17 @@ def mock_valider_kyc_mock(db_session_factory, user_id):
 
 kyc_service._valider_kyc_mock = mock_valider_kyc_mock
 
+from sqlalchemy import text
+
 @pytest.fixture(scope="function")
 def db_session():
     # Initialiser les tables pour chaque test
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+            conn.commit()
+        except Exception:
+            pass
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     
