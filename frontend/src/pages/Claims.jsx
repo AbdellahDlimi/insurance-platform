@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, ChevronLeft, X } from 'lucide-react';
-import { api } from '../api.js';
+import { api, formatRejectionMotif } from '../api.js';
 import { pageVariants, Card, Btn, Field, SectionLabel, AlertBanner, PageLoader, Badge, DisplayItalic } from '../ui.jsx';
 
 /* ── Declare Claim ── */
@@ -355,7 +355,7 @@ const ClaimDetailModal = ({ claim, onClose }) => {
                 Motif du Rejet par l'Administrateur
               </p>
               <p style={{ color: 'var(--paper)', fontSize: '0.9375rem', lineHeight: 1.5, fontWeight: 400, margin: 0 }}>
-                {claim.motif_rejet || 'Votre demande de sinistre a été refusée par l\'administrateur du groupe.'}
+                {formatRejectionMotif(claim.motif_rejet)}
               </p>
             </div>
           )}

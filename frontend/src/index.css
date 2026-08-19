@@ -30,8 +30,8 @@
   --info:     #5A82C8;
 
   /* Typography */
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-body:    'DM Sans', system-ui, sans-serif;
+  --font-display: 'DM Serif Display', 'Fraunces', Georgia, serif;
+  --font-body:    'Inter', 'DM Sans', system-ui, sans-serif;
 
   /* Spacing rhythm */
   --space-xs:  0.25rem;

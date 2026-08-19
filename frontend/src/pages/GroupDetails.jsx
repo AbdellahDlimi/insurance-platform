@@ -4,7 +4,7 @@ import {
   Shield, ArrowLeft, Users, CheckCircle2, XCircle, Clock,
   Wallet, TrendingUp, Star, UserPlus, Crown, AlertCircle, Check, X, AlertTriangle
 } from 'lucide-react';
-import { api } from '../api.js';
+import { api, formatRejectionMotif, STANDARD_REJECTION_REASONS } from '../api.js';
 import {
   pageVariants, staggerContainer, staggerItem,
   Card, Btn, SectionLabel, Badge, PageLoader, DisplayItalic
@@ -899,7 +899,7 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', width: '100%', justifyContent: 'flex-end' }}>
                                   {selectedClaimAction.action === 'validate' ? (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                                         <span style={{ fontSize: '0.8125rem', color: 'var(--paper-dim)' }}>Montant à indemniser (€) :</span>
                                         <input
                                           type="number"
@@ -908,15 +908,15 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
                                           onChange={e => setSelectedClaimAction({ ...selectedClaimAction, amount: e.target.value })}
                                           style={{ width: '130px', padding: '0.35rem 0.6rem', background: 'var(--ink)', border: '1px solid var(--gold-line)', color: 'var(--paper)', borderRadius: 2, fontSize: '0.875rem' }}
                                         />
+                                        <input
+                                          type="text"
+                                          placeholder="Commentaire de validation (optionnel)..."
+                                          value={selectedClaimAction.note}
+                                          onChange={e => setSelectedClaimAction({ ...selectedClaimAction, note: e.target.value })}
+                                          style={{ flex: 1, minWidth: '180px', padding: '0.35rem 0.6rem', background: 'var(--ink)', border: '1px solid var(--gold-line)', color: 'var(--paper)', borderRadius: 2, fontSize: '0.875rem' }}
+                                        />
                                       </div>
-                                      <input
-                                        type="text"
-                                        placeholder="Raison de l'ajustement / Note (ex: plafonnement, remboursement partiel)..."
-                                        value={selectedClaimAction.note || ''}
-                                        onChange={e => setSelectedClaimAction({ ...selectedClaimAction, note: e.target.value })}
-                                        style={{ width: '100%', padding: '0.35rem 0.6rem', background: 'var(--ink)', border: '1px solid var(--gold-line)', color: 'var(--paper)', borderRadius: 2, fontSize: '0.8125rem' }}
-                                      />
-                                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
                                         <Btn variant="ghost" onClick={() => setSelectedClaimAction(null)} style={{ padding: '0.35rem 0.6rem', fontSize: '0.8125rem' }}>
                                           Annuler
                                         </Btn>
@@ -931,27 +931,48 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
                                       </div>
                                     </div>
                                   ) : (
-                                    <>
-                                      <input
-                                        type="text"
-                                        placeholder="Motif du rejet (min. 5 caract.)..."
-                                        value={selectedClaimAction.motif}
-                                        onChange={e => setSelectedClaimAction({ ...selectedClaimAction, motif: e.target.value })}
-                                        style={{ flex: 1, minWidth: '200px', padding: '0.35rem 0.6rem', background: 'var(--ink)', border: '1px solid var(--gold-line)', color: 'var(--paper)', borderRadius: 2, fontSize: '0.875rem' }}
-                                      />
-                                      <button
-                                        disabled={processingClaim}
-                                        onClick={() => handleRejectClaim(claim.id, selectedClaimAction.motif)}
-                                        style={{ padding: '0.35rem 0.85rem', background: 'rgba(200,90,90,0.2)', border: '1px solid var(--danger)', color: 'var(--danger)', borderRadius: 2, cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600 }}
-                                      >
-                                        Confirmer le rejet
-                                      </button>
-                                    </>
-                                  )}
-                                  {selectedClaimAction.action !== 'validate' && (
-                                    <Btn variant="ghost" onClick={() => setSelectedClaimAction(null)} style={{ padding: '0.35rem 0.6rem', fontSize: '0.8125rem' }}>
-                                      Annuler
-                                    </Btn>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        <select
+                                          value={STANDARD_REJECTION_REASONS.includes(selectedClaimAction.motif) ? selectedClaimAction.motif : (selectedClaimAction.motif ? "Autre motif (personnalisé)" : "")}
+                                          onChange={e => {
+                                            const val = e.target.value;
+                                            setSelectedClaimAction({
+                                              ...selectedClaimAction,
+                                              motif: val === "Autre motif (personnalisé)" ? "" : val,
+                                              isCustom: val === "Autre motif (personnalisé)"
+                                            });
+                                          }}
+                                          style={{ flex: 1, minWidth: '220px', padding: '0.4rem 0.6rem', background: 'var(--ink)', border: '1px solid var(--gold-line)', color: 'var(--paper)', borderRadius: 2, fontSize: '0.8125rem' }}
+                                        >
+                                          <option value="">-- Sélectionner un motif standard --</option>
+                                          {STANDARD_REJECTION_REASONS.map((r, i) => (
+                                            <option key={i} value={r}>{r}</option>
+                                          ))}
+                                        </select>
+                                        {(!STANDARD_REJECTION_REASONS.includes(selectedClaimAction.motif) || selectedClaimAction.isCustom) && (
+                                          <input
+                                            type="text"
+                                            placeholder="Précisez le motif détaillé..."
+                                            value={selectedClaimAction.motif}
+                                            onChange={e => setSelectedClaimAction({ ...selectedClaimAction, motif: e.target.value, isCustom: true })}
+                                            style={{ flex: 1, minWidth: '200px', padding: '0.35rem 0.6rem', background: 'var(--ink)', border: '1px solid var(--gold-line)', color: 'var(--paper)', borderRadius: 2, fontSize: '0.875rem' }}
+                                          />
+                                        )}
+                                      </div>
+                                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                                        <Btn variant="ghost" onClick={() => setSelectedClaimAction(null)} style={{ padding: '0.35rem 0.6rem', fontSize: '0.8125rem' }}>
+                                          Annuler
+                                        </Btn>
+                                        <button
+                                          disabled={processingClaim || !selectedClaimAction.motif || selectedClaimAction.motif.trim().length < 5}
+                                          onClick={() => handleRejectClaim(claim.id, selectedClaimAction.motif)}
+                                          style={{ padding: '0.35rem 0.85rem', background: 'rgba(200,90,90,0.2)', border: '1px solid var(--danger)', color: 'var(--danger)', borderRadius: 2, cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600 }}
+                                        >
+                                          Confirmer le rejet
+                                        </button>
+                                      </div>
+                                    </div>
                                   )}
                                 </div>
                               ) : (
