@@ -4,7 +4,7 @@ import {
   Shield, ArrowLeft, Users, CheckCircle2, XCircle, Clock,
   Wallet, TrendingUp, Star, UserPlus, Crown, AlertCircle, Check, X, AlertTriangle
 } from 'lucide-react';
-import { api } from '../api.js';
+import { api, formatRejectionMotif, STANDARD_REJECTION_REASONS } from '../api.js';
 import {
   pageVariants, staggerContainer, staggerItem,
   Card, Btn, SectionLabel, Badge, PageLoader, DisplayItalic
@@ -218,6 +218,30 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
   const [selectedMember, setSelectedMember] = useState(null);
   const [selectedClaimAction, setSelectedClaimAction] = useState(null); // { claim, action: 'validate'|'reject', amount: '', motif: '' }
   const [processingClaim, setProcessingClaim] = useState(false);
+  const [previewClaimDoc, setPreviewClaimDoc] = useState(null);
+
+  const handleViewClaimDoc = async (claim) => {
+    try {
+      const pieces = await api.getClaimPieces(claim.id);
+      if (!pieces || pieces.length === 0) {
+        showToast("Aucune pièce justificative jointe à ce sinistre.", "info");
+        return;
+      }
+      const piece = pieces[0];
+      const blob = await api.fetchClaimPieceBlob(claim.id, piece.id);
+      const blobUrl = URL.createObjectURL(blob);
+      const isPdf = (piece.hdfs_url || '').toLowerCase().endsWith('.pdf') || (piece.type_fichier || '').includes('pdf');
+      setPreviewClaimDoc({
+        blobUrl,
+        isPdf,
+        filename: piece.hdfs_url?.split('/').pop() || 'piece_justificative',
+        claim,
+      });
+    } catch (e) {
+      console.error(e);
+      showToast("Impossible de charger la pièce justificative.", "error");
+    }
+  };
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -805,12 +829,46 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
                                   (Approuvé : {claim.montant_approuve} €)
                                 </span>
                               )}
+
+                              {claim.score_fraude != null && (
+                                <span style={{
+                                  fontSize: '0.6875rem', fontWeight: 600, padding: '0.2rem 0.5rem', borderRadius: 4,
+                                  background: claim.score_fraude >= 0.5 ? 'rgba(200,90,90,0.15)' : claim.score_fraude >= 0.25 ? 'rgba(200,169,110,0.15)' : 'rgba(90,158,124,0.15)',
+                                  color: claim.score_fraude >= 0.5 ? 'var(--danger)' : claim.score_fraude >= 0.25 ? 'var(--gold)' : 'var(--success)',
+                                  border: `1px solid ${claim.score_fraude >= 0.5 ? 'rgba(200,90,90,0.3)' : claim.score_fraude >= 0.25 ? 'rgba(200,169,110,0.3)' : 'rgba(90,158,124,0.3)'}`,
+                                  display: 'inline-flex', alignItems: 'center', gap: '0.3rem'
+                                }}>
+                                  {claim.score_fraude >= 0.5 ? '🔴 Alerte Fraude IA' : claim.score_fraude >= 0.25 ? '🟠 Risque Modéré' : '🟢 Conforme IA'} ({(claim.score_fraude * 100).toFixed(0)}%)
+                                </span>
+                              )}
                             </div>
                           </div>
 
                           <p style={{ color: 'var(--paper)', fontSize: '0.875rem', lineHeight: 1.5, background: 'rgba(0,0,0,0.2)', padding: '0.75rem 1rem', borderRadius: 4, margin: 0 }}>
                             {claim.description}
                           </p>
+
+                          {/* AI Summary and Doc Button */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'rgba(200,169,110,0.04)', border: '1px solid rgba(200,169,110,0.15)', padding: '0.75rem 1rem', borderRadius: 4 }}>
+                            {claim.resume_ia && (
+                              <p style={{ color: 'var(--paper)', fontSize: '0.8125rem', lineHeight: 1.4, margin: 0 }}>
+                                <strong style={{ color: 'var(--gold)' }}>🧠 Analyse IA :</strong> {claim.resume_ia}
+                              </p>
+                            )}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: claim.resume_ia ? '0.5rem' : 0, borderTop: claim.resume_ia ? '1px solid rgba(200,169,110,0.08)' : 'none' }}>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--paper-dim)' }}>Pièce justificative jointe</span>
+                              <button
+                                onClick={() => handleViewClaimDoc(claim)}
+                                style={{
+                                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(240,237,230,0.1)',
+                                  color: 'var(--gold)', padding: '0.25rem 0.6rem', borderRadius: 3, cursor: 'pointer',
+                                  fontSize: '0.75rem', fontWeight: 600
+                                }}
+                              >
+                                📄 Examiner la pièce jointe
+                              </button>
+                            </div>
+                          </div>
 
                           {claim.statut === 'validee' && claim.commentaire_validation && (
                             <div style={{ background: 'rgba(90,158,124,0.08)', borderLeft: '3px solid var(--success)', padding: '0.625rem 0.875rem', borderRadius: 4 }}>
@@ -841,7 +899,7 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', width: '100%', justifyContent: 'flex-end' }}>
                                   {selectedClaimAction.action === 'validate' ? (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                                         <span style={{ fontSize: '0.8125rem', color: 'var(--paper-dim)' }}>Montant à indemniser (€) :</span>
                                         <input
                                           type="number"
@@ -850,15 +908,15 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
                                           onChange={e => setSelectedClaimAction({ ...selectedClaimAction, amount: e.target.value })}
                                           style={{ width: '130px', padding: '0.35rem 0.6rem', background: 'var(--ink)', border: '1px solid var(--gold-line)', color: 'var(--paper)', borderRadius: 2, fontSize: '0.875rem' }}
                                         />
+                                        <input
+                                          type="text"
+                                          placeholder="Commentaire de validation (optionnel)..."
+                                          value={selectedClaimAction.note}
+                                          onChange={e => setSelectedClaimAction({ ...selectedClaimAction, note: e.target.value })}
+                                          style={{ flex: 1, minWidth: '180px', padding: '0.35rem 0.6rem', background: 'var(--ink)', border: '1px solid var(--gold-line)', color: 'var(--paper)', borderRadius: 2, fontSize: '0.875rem' }}
+                                        />
                                       </div>
-                                      <input
-                                        type="text"
-                                        placeholder="Raison de l'ajustement / Note (ex: plafonnement, remboursement partiel)..."
-                                        value={selectedClaimAction.note || ''}
-                                        onChange={e => setSelectedClaimAction({ ...selectedClaimAction, note: e.target.value })}
-                                        style={{ width: '100%', padding: '0.35rem 0.6rem', background: 'var(--ink)', border: '1px solid var(--gold-line)', color: 'var(--paper)', borderRadius: 2, fontSize: '0.8125rem' }}
-                                      />
-                                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
                                         <Btn variant="ghost" onClick={() => setSelectedClaimAction(null)} style={{ padding: '0.35rem 0.6rem', fontSize: '0.8125rem' }}>
                                           Annuler
                                         </Btn>
@@ -873,27 +931,48 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
                                       </div>
                                     </div>
                                   ) : (
-                                    <>
-                                      <input
-                                        type="text"
-                                        placeholder="Motif du rejet (min. 5 caract.)..."
-                                        value={selectedClaimAction.motif}
-                                        onChange={e => setSelectedClaimAction({ ...selectedClaimAction, motif: e.target.value })}
-                                        style={{ flex: 1, minWidth: '200px', padding: '0.35rem 0.6rem', background: 'var(--ink)', border: '1px solid var(--gold-line)', color: 'var(--paper)', borderRadius: 2, fontSize: '0.875rem' }}
-                                      />
-                                      <button
-                                        disabled={processingClaim}
-                                        onClick={() => handleRejectClaim(claim.id, selectedClaimAction.motif)}
-                                        style={{ padding: '0.35rem 0.85rem', background: 'rgba(200,90,90,0.2)', border: '1px solid var(--danger)', color: 'var(--danger)', borderRadius: 2, cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600 }}
-                                      >
-                                        Confirmer le rejet
-                                      </button>
-                                    </>
-                                  )}
-                                  {selectedClaimAction.action !== 'validate' && (
-                                    <Btn variant="ghost" onClick={() => setSelectedClaimAction(null)} style={{ padding: '0.35rem 0.6rem', fontSize: '0.8125rem' }}>
-                                      Annuler
-                                    </Btn>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        <select
+                                          value={STANDARD_REJECTION_REASONS.includes(selectedClaimAction.motif) ? selectedClaimAction.motif : (selectedClaimAction.motif ? "Autre motif (personnalisé)" : "")}
+                                          onChange={e => {
+                                            const val = e.target.value;
+                                            setSelectedClaimAction({
+                                              ...selectedClaimAction,
+                                              motif: val === "Autre motif (personnalisé)" ? "" : val,
+                                              isCustom: val === "Autre motif (personnalisé)"
+                                            });
+                                          }}
+                                          style={{ flex: 1, minWidth: '220px', padding: '0.4rem 0.6rem', background: 'var(--ink)', border: '1px solid var(--gold-line)', color: 'var(--paper)', borderRadius: 2, fontSize: '0.8125rem' }}
+                                        >
+                                          <option value="">-- Sélectionner un motif standard --</option>
+                                          {STANDARD_REJECTION_REASONS.map((r, i) => (
+                                            <option key={i} value={r}>{r}</option>
+                                          ))}
+                                        </select>
+                                        {(!STANDARD_REJECTION_REASONS.includes(selectedClaimAction.motif) || selectedClaimAction.isCustom) && (
+                                          <input
+                                            type="text"
+                                            placeholder="Précisez le motif détaillé..."
+                                            value={selectedClaimAction.motif}
+                                            onChange={e => setSelectedClaimAction({ ...selectedClaimAction, motif: e.target.value, isCustom: true })}
+                                            style={{ flex: 1, minWidth: '200px', padding: '0.35rem 0.6rem', background: 'var(--ink)', border: '1px solid var(--gold-line)', color: 'var(--paper)', borderRadius: 2, fontSize: '0.875rem' }}
+                                          />
+                                        )}
+                                      </div>
+                                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                                        <Btn variant="ghost" onClick={() => setSelectedClaimAction(null)} style={{ padding: '0.35rem 0.6rem', fontSize: '0.8125rem' }}>
+                                          Annuler
+                                        </Btn>
+                                        <button
+                                          disabled={processingClaim || !selectedClaimAction.motif || selectedClaimAction.motif.trim().length < 5}
+                                          onClick={() => handleRejectClaim(claim.id, selectedClaimAction.motif)}
+                                          style={{ padding: '0.35rem 0.85rem', background: 'rgba(200,90,90,0.2)', border: '1px solid var(--danger)', color: 'var(--danger)', borderRadius: 2, cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600 }}
+                                        >
+                                          Confirmer le rejet
+                                        </button>
+                                      </div>
+                                    </div>
                                   )}
                                 </div>
                               ) : (
@@ -956,7 +1035,77 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
           )}
 
         </motion.div>
+
+        {/* Modal Visualiseur de pièce justificative */}
+        {previewClaimDoc && (
+          <div
+            onClick={() => {
+              if (previewClaimDoc.blobUrl) URL.revokeObjectURL(previewClaimDoc.blobUrl);
+              setPreviewClaimDoc(null);
+            }}
+            style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(5,5,8,0.92)', backdropFilter: 'blur(8px)', zIndex: 999999,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem'
+            }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: 'var(--ink)', border: '1px solid var(--gold-line)',
+                borderRadius: 8, maxWidth: '850px', width: '100%', maxHeight: '90vh',
+                display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                boxShadow: '0 25px 60px rgba(0,0,0,0.8)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(240,237,230,0.08)' }}>
+                <div>
+                  <span style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--gold)' }}>
+                    Examen Administrateur • Pièce de Sinistre
+                  </span>
+                  <h4 style={{ color: 'var(--paper)', margin: '0.2rem 0 0', fontFamily: 'var(--font-display)' }}>
+                    {previewClaimDoc.filename}
+                  </h4>
+                </div>
+                <button
+                  onClick={() => {
+                    if (previewClaimDoc.blobUrl) URL.revokeObjectURL(previewClaimDoc.blobUrl);
+                    setPreviewClaimDoc(null);
+                  }}
+                  style={{ background: 'rgba(255,255,255,0.06)', border: 'none', color: 'var(--paper)', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div style={{ flex: 1, overflow: 'auto', padding: '1.5rem', background: '#0a0a0c', minHeight: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {previewClaimDoc.isPdf ? (
+                  <iframe src={previewClaimDoc.blobUrl} title="Aperçu Justificatif" style={{ width: '100%', height: '550px', border: '1px solid rgba(240,237,230,0.1)', borderRadius: 4, background: '#fff' }} />
+                ) : (
+                  <img src={previewClaimDoc.blobUrl} alt="Justificatif de sinistre" style={{ maxWidth: '100%', maxHeight: '65vh', objectFit: 'contain', borderRadius: 4 }} />
+                )}
+              </div>
+
+              <div style={{ padding: '0.875rem 1.5rem', background: 'var(--ink-90)', borderTop: '1px solid rgba(240,237,230,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <a
+                  href={previewClaimDoc.blobUrl}
+                  download={previewClaimDoc.filename}
+                  style={{ color: 'var(--gold)', fontSize: '0.8125rem', textDecoration: 'none', fontWeight: 600 }}
+                >
+                  ⬇️ Télécharger le fichier original
+                </a>
+                <Btn variant="primary" onClick={() => {
+                  if (previewClaimDoc.blobUrl) URL.revokeObjectURL(previewClaimDoc.blobUrl);
+                  setPreviewClaimDoc(null);
+                }}>
+                  Fermer l'examen
+                </Btn>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </motion.div>
   );
 };
+

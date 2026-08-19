@@ -1,14 +1,149 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Check, X, FileText, ChevronLeft, Download } from 'lucide-react';
+import { Shield, Check, X, FileText, ChevronLeft, Download, Eye, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 import { api } from '../api.js';
 import { pageVariants, Card, Btn, Badge, SectionLabel, PageLoader, DisplayItalic } from '../ui.jsx';
+
+/* ── KYC Document Viewer Modal ── */
+const DocumentViewerModal = ({ doc, onClose }) => {
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+
+  if (!doc) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(10,10,12,0.92)', backdropFilter: 'blur(10px)',
+        zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '1.5rem',
+      }}
+    >
+      <motion.div
+        initial={{ scale: 0.94, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.94, opacity: 0 }}
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: 'var(--ink)', border: '1px solid var(--gold-line)',
+          borderRadius: '8px', width: '100%', maxWidth: '850px',
+          maxHeight: '90vh', display: 'flex', flexDirection: 'column',
+          boxShadow: '0 25px 60px rgba(0,0,0,0.7)', overflow: 'hidden',
+        }}
+      >
+        {/* Modal Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.75rem', borderBottom: '1px solid rgba(240,237,230,0.08)' }}>
+          <div>
+            <span style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--gold)' }}>
+              Équipe de Conformité • Examen KYC
+            </span>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', color: 'var(--paper)', margin: '0.2rem 0 0' }}>
+              Pièce d'identité : {doc.pseudonyme}
+            </h3>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {!doc.isPdf && (
+              <>
+                <button
+                  onClick={() => setZoom(z => Math.max(0.6, z - 0.2))}
+                  title="Zoom arrière"
+                  style={{ background: 'var(--ink-80)', border: '1px solid rgba(240,237,230,0.1)', color: 'var(--paper)', borderRadius: 4, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                >
+                  <ZoomOut size={16} />
+                </button>
+                <button
+                  onClick={() => setZoom(z => Math.min(2.5, z + 0.2))}
+                  title="Zoom avant"
+                  style={{ background: 'var(--ink-80)', border: '1px solid rgba(240,237,230,0.1)', color: 'var(--paper)', borderRadius: 4, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                >
+                  <ZoomIn size={16} />
+                </button>
+                <button
+                  onClick={() => setRotation(r => (r + 90) % 360)}
+                  title="Pivoter"
+                  style={{ background: 'var(--ink-80)', border: '1px solid rgba(240,237,230,0.1)', color: 'var(--paper)', borderRadius: 4, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                >
+                  <RotateCw size={16} />
+                </button>
+              </>
+            )}
+            <a
+              href={doc.blobUrl}
+              download={doc.filename || 'document_kyc'}
+              title="Télécharger l'original"
+              style={{ background: 'var(--ink-80)', border: '1px solid rgba(240,237,230,0.1)', color: 'var(--gold)', borderRadius: 4, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}
+            >
+              <Download size={16} />
+            </a>
+            <button
+              onClick={onClose}
+              style={{ background: 'rgba(255,255,255,0.06)', border: 'none', color: 'var(--paper)', borderRadius: '50%', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginLeft: '0.5rem' }}
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Document Content Area */}
+        <div style={{ flex: 1, overflow: 'auto', padding: '1.5rem', background: '#0a0a0c', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+          {doc.loading ? (
+            <div style={{ textAlign: 'center' }}>
+              <div className="spinner" style={{ margin: '0 auto 1rem' }} />
+              <p style={{ color: 'var(--paper-dim)', fontSize: '0.875rem' }}>Chargement sécurisé du document…</p>
+            </div>
+          ) : doc.error ? (
+            <div style={{ textAlign: 'center', color: 'var(--danger)', padding: '2rem' }}>
+              <p>{doc.error}</p>
+            </div>
+          ) : doc.isPdf ? (
+            <iframe
+              src={doc.blobUrl}
+              title="Aperçu Document PDF"
+              style={{ width: '100%', height: '580px', border: '1px solid rgba(240,237,230,0.1)', borderRadius: 4, background: '#fff' }}
+            />
+          ) : (
+            <div style={{ overflow: 'auto', textAlign: 'center', width: '100%' }}>
+              <img
+                src={doc.blobUrl}
+                alt="Pièce d'identité"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '65vh',
+                  objectFit: 'contain',
+                  transform: `scale(${zoom}) rotate(${rotation}deg)`,
+                  transition: 'transform 0.2s ease-out',
+                  borderRadius: 4,
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '0.875rem 1.75rem', background: 'var(--ink-90)', borderTop: '1px solid rgba(240,237,230,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--paper-dim)', margin: 0 }}>
+            Nom du fichier : <strong>{doc.filename}</strong>
+          </p>
+          <Btn variant="primary" onClick={onClose}>Fermer l'aperçu</Btn>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 export const KYCAdmin = ({ navigate, user }) => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
   const [comment, setComment] = useState('');
+  const [previewDoc, setPreviewDoc] = useState(null);
 
   useEffect(() => {
     if (user.role !== 'admin_plateforme') {
@@ -21,6 +156,45 @@ export const KYCAdmin = ({ navigate, user }) => {
       .catch(e => console.error("Erreur chargement KYC", e))
       .finally(() => setLoading(false));
   }, [user, navigate]);
+
+  const handleOpenDoc = async (req) => {
+    const filename = req.document_url?.split('/').pop() || 'document_kyc';
+    const isPdf = filename.toLowerCase().endsWith('.pdf');
+    
+    setPreviewDoc({
+      kycId: req.id,
+      pseudonyme: req.pseudonyme || 'Utilisateur',
+      filename,
+      isPdf,
+      loading: true,
+      blobUrl: null,
+      error: null,
+    });
+
+    try {
+      const blob = await api.fetchKycDocumentBlob(req.id);
+      const blobUrl = URL.createObjectURL(blob);
+      setPreviewDoc(prev => ({
+        ...prev,
+        loading: false,
+        blobUrl,
+      }));
+    } catch (e) {
+      console.error('Erreur chargement document KYC:', e);
+      setPreviewDoc(prev => ({
+        ...prev,
+        loading: false,
+        error: "Impossible d'accéder au fichier physique sur le serveur.",
+      }));
+    }
+  };
+
+  const handleCloseDoc = () => {
+    if (previewDoc?.blobUrl) {
+      URL.revokeObjectURL(previewDoc.blobUrl);
+    }
+    setPreviewDoc(null);
+  };
 
   const handleReview = async (kycId, statut) => {
     setProcessingId(kycId);
@@ -55,7 +229,7 @@ export const KYCAdmin = ({ navigate, user }) => {
               Conformité <DisplayItalic>KYC</DisplayItalic>
             </h1>
             <p style={{ color: 'var(--paper-dim)', fontSize: '0.9375rem', marginTop: '0.375rem' }}>
-              Examen manuel des pièces d'identité
+              Examen direct et vérification des pièces d'identité (Passeport / CIN)
             </p>
           </div>
           <Badge variant="gold">{requests.length} en attente</Badge>
@@ -104,11 +278,11 @@ export const KYCAdmin = ({ navigate, user }) => {
                         <div style={{ background: 'var(--ink-90)', padding: '1rem', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(240,237,230,0.1)' }}>
                            <FileText size={24} color="var(--gold)" />
                            <div>
-                             <p className="text-label" style={{ marginBottom: 0 }}>Document fourni</p>
-                             <p style={{ color: 'var(--paper-dim)', fontSize: '0.8125rem' }}>{req.document_url?.split('/').pop() || 'Document inconnu'}</p>
+                             <p className="text-label" style={{ marginBottom: 0 }}>Pièce d'identité fournie</p>
+                             <p style={{ color: 'var(--paper-dim)', fontSize: '0.8125rem' }}>{req.document_url?.split('/').pop() || 'Document'}</p>
                            </div>
-                           <Btn variant="secondary" onClick={() => window.alert("Simulation: Ouverture du document " + req.document_url)}>
-                             <Download size={14} /> Voir
+                           <Btn variant="secondary" onClick={() => handleOpenDoc(req)}>
+                             <Eye size={14} /> Voir le document
                            </Btn>
                         </div>
                       </div>
@@ -165,7 +339,15 @@ export const KYCAdmin = ({ navigate, user }) => {
             </AnimatePresence>
           </div>
         )}
+
+        {/* Modal de prévisualisation directe du document KYC */}
+        <AnimatePresence>
+          {previewDoc && (
+            <DocumentViewerModal doc={previewDoc} onClose={handleCloseDoc} />
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );
 };
+

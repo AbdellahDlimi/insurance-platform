@@ -73,6 +73,20 @@ def create_piece_justificative(session: Session, **kwargs) -> PieceJustificative
     return piece
 
 
+def create_alerte_fraude(session: Session, **kwargs) -> AlerteFraude:
+    """Insère une nouvelle alerte de fraude."""
+    alerte = AlerteFraude(**kwargs)
+    session.add(alerte)
+    session.commit()
+    session.refresh(alerte)
+    return alerte
+
+
+def get_piece_by_id(session: Session, piece_id: UUID) -> Optional[PieceJustificative]:
+    """Récupère une pièce justificative par son ID."""
+    return session.query(PieceJustificative).filter(PieceJustificative.id == piece_id).first()
+
+
 def list_alertes_by_sinistre(
     session: Session, sinistre_id: UUID
 ) -> list[AlerteFraude]:
@@ -82,3 +96,4 @@ def list_alertes_by_sinistre(
         .filter(AlerteFraude.sinistre_id == sinistre_id)
         .all()
     )
+

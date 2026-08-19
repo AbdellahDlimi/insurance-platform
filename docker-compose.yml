@@ -64,3 +64,18 @@ services:
     restart: always
     ports:
       - "8080:8080"
+
+  # 5. Stockage d'Objets S3 (Documents KYC, Attestations Sinistres, Photos)
+  minio:
+    image: minio/minio:latest
+    container_name: p2p_minio
+    restart: always
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: miniopassword
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000" # Port API S3
+      - "9001:9001" # Interface Web Console MinIO
+    volumes:
+      - ./data/minio:/data
