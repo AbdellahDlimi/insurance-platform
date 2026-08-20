@@ -6,17 +6,26 @@ import logging
 import hashlib
 from typing import List, Optional
 
-from google import genai
-from google.genai import types
+try:
+    from google import genai
+    from google.genai import types
+    GENAI_AVAILABLE = True
+except ImportError:
+    genai = None
+    types = None
+    GENAI_AVAILABLE = False
+
 import app.config as cfg
 
 logger = logging.getLogger(__name__)
 
-_client: Optional[genai.Client] = None
+_client = None
 
 
-def _get_client() -> Optional[genai.Client]:
+def _get_client():
     global _client
+    if not GENAI_AVAILABLE:
+        return None
     if _client is None and cfg.GEMINI_API_KEY and "YOUR_GEMINI_API_KEY" not in cfg.GEMINI_API_KEY:
         try:
             _client = genai.Client(api_key=cfg.GEMINI_API_KEY)
@@ -24,6 +33,7 @@ def _get_client() -> Optional[genai.Client]:
             logger.error(f"Erreur initialisation client Gemini embedding: {e}")
             _client = None
     return _client
+
 
 
 class EmbeddingService:

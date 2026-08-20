@@ -2,8 +2,13 @@ import uuid
 import math
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+
+try:
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    SKLEARN_AVAILABLE = False
 
 from app.modules.users_kyc.repository import get_profil_onboarding
 from app.modules.groups.repository import get_open_groups, get_members_by_group
@@ -14,6 +19,13 @@ def _compute_interest_score(profil_interests: list[str], group_specialty: str) -
     if not profil_interests or not group_specialty:
         return 0.0
     
+    if not SKLEARN_AVAILABLE:
+        # Fallback simple keyword overlap similarity
+        tokens_p = set(" ".join(profil_interests).lower().split())
+        tokens_g = set(group_specialty.lower().split())
+        intersection = tokens_p.intersection(tokens_g)
+        return float(len(intersection)) / float(max(len(tokens_p.union(tokens_g)), 1))
+
     # Simple TF-IDF cosine similarity
     corpus = [
         " ".join(profil_interests),
@@ -27,6 +39,7 @@ def _compute_interest_score(profil_interests: list[str], group_specialty: str) -
     except ValueError:
         # Fallback if empty vocabulary
         return 0.0
+
 
 def _compute_budget_score(budget_max: float, cotisation: float) -> float:
     if cotisation <= budget_max:

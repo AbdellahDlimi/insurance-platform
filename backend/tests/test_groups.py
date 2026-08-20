@@ -22,7 +22,7 @@ def test_create_group(verified_client):
     assert len(members) == 1
     assert members[0]["utilisateur_id"] == verified_client["user"]["id"]
 
-def test_join_group_workflow(verified_client, client):
+def test_join_group_workflow(verified_client, client, db_session):
     admin_client = verified_client["client"]
     admin_user_id = verified_client["user"]["id"]
     
@@ -40,15 +40,16 @@ def test_join_group_workflow(verified_client, client):
     group_id = group_res.json()["id"]
     
     # L'admin doit se reconnecter pour mettre à jour son token avec le nouveau rôle
-    login_admin_res = admin_client.post("/users_kyc/login", json={"email": "auth@trustpool.io", "mot_de_passe": "password123"})
+    login_admin_res = admin_client.post("/users_kyc/login", json={"email": "auth@gmail.com", "mot_de_passe": "password123"})
     admin_client.headers.update({"Authorization": f"Bearer {login_admin_res.json()['access_token']}"})
     
     # 2. Création d'un 2ème utilisateur (non-admin)
-    client.post(
-        "/users_kyc/register",
-        json={"email": "member@trustpool.io", "mot_de_passe": "pass123", "pseudonyme": "Member"}
-    )
-    login_res = client.post("/users_kyc/login", json={"email": "member@trustpool.io", "mot_de_passe": "pass123"})
+    from app.modules.users_kyc import repository as kyc_repo
+    from passlib.context import CryptContext
+    pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    kyc_repo.create_user(db_session, "member@gmail.com", pwd_ctx.hash("pass123"), "Member#9999", email_confirme=True)
+    login_res = client.post("/users_kyc/login", json={"email": "member@gmail.com", "mot_de_passe": "pass123"})
+
     member_token = login_res.json()["access_token"]
     member_headers = {"Authorization": f"Bearer {member_token}"}
     

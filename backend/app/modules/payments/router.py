@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_session
-from app.core.auth import get_current_user, TokenPayload
+from app.core.auth import get_current_user, require_verified_kyc, TokenPayload
 from app.modules.cagnotte.models import Cotisation
 from app.modules.groups.models import Adhesion
 from app.modules.payments.models import Payment
@@ -18,9 +18,10 @@ router = APIRouter(prefix="/payments", tags=["Payments"])
 @router.post("/create-checkout-session/{cotisation_id}", response_model=CheckoutSessionOut, summary="Créer une session Stripe Checkout")
 def create_checkout_session(
     cotisation_id: UUID, 
-    current_user: TokenPayload = Depends(get_current_user), 
+    current_user: TokenPayload = Depends(require_verified_kyc), 
     db: Session = Depends(get_session)
 ):
+
     """
     Crée une session Stripe Checkout pour régler une cotisation spécifique.
     Vérifie que la cotisation existe, n'est pas déjà payée, et que l'utilisateur y a accès.

@@ -58,3 +58,27 @@ def mark_all_as_read(
 ):
     count = notification_service.mark_all_notifications_read(session, UUID(current_user.user_id))
     return {"marked_as_read": count}
+
+
+from app.modules.notifications.schemas import NotificationDirectCreate
+
+@router.post(
+    "/send-to-user",
+    response_model=NotificationResponse,
+    summary="Envoyer une notification directe (Équipe Conformité)",
+)
+def send_notification_to_user(
+    data: NotificationDirectCreate,
+    current_user: TokenPayload = Depends(get_current_user),
+    session: Session = Depends(get_session),
+    notification_service: NotificationService = Depends(get_notification_service),
+):
+    from app.modules.notifications import repository
+    notif = repository.create_notification(
+        session,
+        utilisateur_id=data.destinataire_id,
+        n_type=data.type,
+        contenu=data.contenu,
+    )
+    return notif
+

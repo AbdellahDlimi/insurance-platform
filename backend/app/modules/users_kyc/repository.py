@@ -5,11 +5,11 @@ Aucune logique métier ici — uniquement des opérations CRUD.
 import uuid
 from datetime import datetime
 from sqlalchemy.orm import Session
-from app.modules.users_kyc.models import Utilisateur, CoffreKYC, EquipeConformite
+from app.modules.users_kyc.models import Utilisateur, CoffreKYC, EquipeConformite, PendingRegistration
 
 
 def get_user_by_email(db: Session, email: str) -> Utilisateur | None:
-    return db.query(Utilisateur).filter(Utilisateur.email == email).first()
+    return db.query(Utilisateur).filter(Utilisateur.email == email.strip().lower()).first()
 
 
 def get_user_by_id(db: Session, user_id: uuid.UUID) -> Utilisateur | None:
@@ -17,25 +17,88 @@ def get_user_by_id(db: Session, user_id: uuid.UUID) -> Utilisateur | None:
 
 
 def get_agent_by_email(db: Session, email: str) -> EquipeConformite | None:
-    return db.query(EquipeConformite).filter(EquipeConformite.email == email).first()
+    return db.query(EquipeConformite).filter(EquipeConformite.email == email.strip().lower()).first()
 
 
 def get_agent_by_id(db: Session, agent_id: uuid.UUID) -> EquipeConformite | None:
     return db.query(EquipeConformite).filter(EquipeConformite.id == agent_id).first()
 
 
+def get_pending_registration(db: Session, email: str) -> PendingRegistration | None:
+    return db.query(PendingRegistration).filter(PendingRegistration.email == email.strip().lower()).first()
+
+
+def create_or_update_pending_registration(
+    db: Session, email: str, mot_de_passe_hash: str, pseudonyme: str, code_hash: str, expires_at: datetime
+) -> PendingRegistration:
+    clean_email = email.strip().lower()
+    pending = get_pending_registration(db, clean_email)
+    if pending:
+        pending.mot_de_passe_hash = mot_de_passe_hash
+        pending.pseudonyme = pseudonyme
+        pending.code_verification_hash = code_hash
+        pending.date_expiration = expires_at
+    else:
+        pending = PendingRegistration(
+            email=clean_email,
+            mot_de_passe_hash=mot_de_passe_hash,
+            pseudonyme=pseudonyme,
+            code_verification_hash=code_hash,
+            date_expiration=expires_at,
+        )
+        db.add(pending)
+    db.commit()
+    db.refresh(pending)
+    return pending
+
+
+def delete_pending_registration(db: Session, email: str) -> None:
+    clean_email = email.strip().lower()
+    db.query(PendingRegistration).filter(PendingRegistration.email == clean_email).delete()
+    db.commit()
+
+
+def cleanup_expired_pending_registrations(db: Session, now: datetime) -> int:
+    deleted = db.query(PendingRegistration).filter(PendingRegistration.date_expiration < now).delete()
+    db.commit()
+    return deleted
+
+
 def create_user(
-    db: Session, email: str, mot_de_passe_hash: str, pseudonyme: str
+    db: Session, email: str, mot_de_passe_hash: str, pseudonyme: str, email_confirme: bool = True
 ) -> Utilisateur:
     user = Utilisateur(
-        email=email,
+        email=email.strip().lower(),
         mot_de_passe_hash=mot_de_passe_hash,
         pseudonyme=pseudonyme,
+        email_confirme=email_confirme,
+        statut_compte="actif",
     )
     db.add(user)
     db.commit()
     db.refresh(user)
     return user
+
+
+def set_user_confirmation_code(db: Session, user: Utilisateur, code: str) -> Utilisateur:
+    user.token_confirmation_email = code
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def get_user_by_confirmation_token(db: Session, token: str) -> Utilisateur | None:
+    return db.query(Utilisateur).filter(Utilisateur.token_confirmation_email == token).first()
+
+
+def confirm_user_email(db: Session, user: Utilisateur) -> Utilisateur:
+    user.email_confirme = True
+    user.token_confirmation_email = None
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 
 
 def create_coffre_kyc(

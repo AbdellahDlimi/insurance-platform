@@ -10,6 +10,23 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
+axiosClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 403) {
+      const detail = error.response?.data?.detail;
+      if (typeof detail === 'string' && (detail.toLowerCase().includes('kyc') || detail.toLowerCase().includes('identité') || detail.toLowerCase().includes('identite'))) {
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/kyc')) {
+          sessionStorage.setItem('kyc_blocked_message', "Complétez votre vérification d'identité (KYC) pour continuer.");
+          window.location.href = '/kyc';
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+
 export const api = {
   login: async (email, password) => {
     const res = await axiosClient.post('/users_kyc/login', { email, mot_de_passe: password });
@@ -23,7 +40,20 @@ export const api = {
     const res = await axiosClient.post('/users_kyc/register', { email, mot_de_passe: password, pseudonyme });
     return res.data;
   },
+  verifyCode: async (email, code) => {
+    const res = await axiosClient.post('/users_kyc/verify-code', { email, code });
+    const { access_token, refresh_token } = res.data;
+    localStorage.setItem('access_token', access_token);
+    localStorage.setItem('refresh_token', refresh_token);
+    const me = await axiosClient.get('/users_kyc/me');
+    return { token: access_token, user: me.data };
+  },
+  resendCode: async (email) => {
+    const res = await axiosClient.post('/users_kyc/resend-code', { email });
+    return res.data;
+  },
   updateProfile: async (data) => {
+
     const res = await axiosClient.patch('/users_kyc/me', data);
     return res.data;
   },
@@ -375,11 +405,42 @@ export const api = {
     const res = await axiosClient.get(`/payments/${paymentId}`);
     return res.data;
   },
-  getMyPayments: async () => {
-    const res = await axiosClient.get('/payments/my-payments');
+  // ── Conformité, Audit & Levée d'Anonymat ──
+  getAuditLogs: async (params = {}) => {
+    const res = await axiosClient.get('/audit/logs', { params });
+    return res.data;
+  },
+  getAnonymityRequests: async (statut = null) => {
+    const res = await axiosClient.get('/audit/levee-anonymat', { params: statut ? { statut } : {} });
+    return res.data;
+  },
+  approveAnonymityLift: async (demandeId) => {
+    const res = await axiosClient.post(`/audit/levee-anonymat/${demandeId}/approve`);
+    return res.data;
+  },
+  rejectAnonymityLift: async (demandeId) => {
+    const res = await axiosClient.post(`/audit/levee-anonymat/${demandeId}/reject`);
+    return res.data;
+  },
+  getAllFraudAlerts: async (statut = null) => {
+    const res = await axiosClient.get('/claims/alertes/all', { params: statut ? { statut } : {} });
+    return res.data;
+  },
+  updateFraudAlertStatus: async (alerteId, statut) => {
+    const res = await axiosClient.post(`/claims/alertes/${alerteId}/traiter`, null, { params: { statut } });
+    return res.data;
+  },
+  sendNotificationToUser: async (destinataireId, contenu, type = 'compliance_alert') => {
+    const res = await axiosClient.post('/notifications/send-to-user', {
+      destinataire_id: destinataireId,
+      contenu,
+      type,
+    });
     return res.data;
   },
 };
+
+
 
 export const STANDARD_REJECTION_REASONS = [
   "Preuves insuffisantes ou justificatifs non exploitables",

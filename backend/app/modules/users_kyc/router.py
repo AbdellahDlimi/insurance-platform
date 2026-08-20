@@ -2,34 +2,134 @@ import os
 import mimetypes
 import uuid
 
-from fastapi import APIRouter, Depends, BackgroundTasks, Form, UploadFile, File, HTTPException, status
+from fastapi import APIRouter, Depends, BackgroundTasks, Form, UploadFile, File, HTTPException, Query, status
 from fastapi.responses import FileResponse
+
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user, TokenPayload
 from app.core.database import get_session, SessionLocal
 from app.modules.users_kyc import service, repository
-from app.modules.users_kyc.schemas import UserCreate, UserLogin, UserOut, UserUpdate, TokenResponse, KYCStatusOut, OnboardingSubmit, OnboardingOut, KYCReviewSubmit, KYCDetailOut
+from app.modules.users_kyc.schemas import (
+    UserCreate,
+    RegisterResponse,
+    UserLogin,
+    UserOut,
+    UserUpdate,
+    TokenResponse,
+    VerifyCodeRequest,
+    ResendCodeRequest,
+    TestEmailRequest,
+    KYCStatusOut,
+    OnboardingSubmit,
+    OnboardingOut,
+    KYCReviewSubmit,
+    KYCDetailOut,
+)
 from app.modules.notifications.dependencies import get_notification_service
 from app.modules.notifications.service import NotificationService
+from app.core.email.templates_enum import EmailTemplate
+from app.core.email.dependencies import get_email_service
+from app.core.email.email_service import EmailService
+
+from fastapi.responses import RedirectResponse
 
 router = APIRouter(prefix="/users_kyc", tags=["users_kyc"])
 
 
-@router.post("/register", response_model=UserOut, status_code=201)
+@router.post("/register", response_model=RegisterResponse, status_code=201)
 def register(
     data: UserCreate, 
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_session),
     notification_service: NotificationService = Depends(get_notification_service),
 ):
-    user = service.register_user(db, data, notification_service, background_tasks)
-    return user
+    result = service.register_user(db, data, notification_service, background_tasks)
+    return result
+
+@router.get("/confirm-email", summary="Valider la confirmation d'adresse email")
+def confirm_email(
+    token: str = Query(..., description="Token unique de confirmation"),
+    db: Session = Depends(get_session),
+):
+    """
+    Confirme l'adresse email d'un utilisateur après clic sur le lien reçu.
+    Passe email_confirme à True et redirige vers le frontend.
+    """
+    user = service.confirm_user_email(db, token)
+    return RedirectResponse(url="http://localhost:5173/dashboard?email_confirmed=true", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/verify-code", response_model=TokenResponse, summary="Vérifier le code de confirmation OTP à 6 chiffres")
+def verify_code(
+    data: VerifyCodeRequest,
+    db: Session = Depends(get_session),
+    notification_service: NotificationService = Depends(get_notification_service),
+):
+    """
+    Vérifie le code reçu par email à l'inscription, crée l'utilisateur et le connecte immédiatement.
+    """
+    return service.verify_email_code(db, data.email, data.code, notification_service)
+
+
+
+@router.post("/resend-code", summary="Renvoyer un nouveau code de confirmation par email")
+def resend_code(
+    data: ResendCodeRequest,
+    background_tasks: BackgroundTasks = None,
+    db: Session = Depends(get_session),
+    notification_service: NotificationService = Depends(get_notification_service),
+):
+    """
+    Génère et renvoie un nouveau code OTP à 6 chiffres.
+    """
+    return service.resend_verification_code(db, data.email, notification_service, background_tasks)
+
+
+@router.post("/debug/test-email", summary="[DEBUG] Tester l'envoi d'un email réel")
+def debug_test_email(
+    data: TestEmailRequest,
+    email_service: EmailService = Depends(get_email_service),
+):
+    """
+    Endpoint de diagnostic pour tester immédiatement la configuration SMTP / Resend.
+    Envoie un email réel de test avec un code de vérification factice de test.
+    """
+    test_code = "789123"
+    try:
+        # Envoi synchrone direct pour capturer immédiatement le résultat
+        result = email_service._build_and_send(
+            to=data.email,
+            subject=f"Test SMTP / Email TrustPool — Code : {test_code}",
+            template=EmailTemplate.WELCOME,
+            context={"pseudonyme": "Testeur", "confirmation_token": test_code},
+        )
+        if result.success:
+            return {
+                "status": "success",
+                "message": f"Email de test envoyé avec succès à {data.email} !",
+                "message_id": result.message_id,
+            }
+        else:
+            return {
+                "status": "error",
+                "message": f"Échec de l'envoi à {data.email}",
+                "error": result.error,
+            }
+    except Exception as exc:
+        import traceback
+        return {
+            "status": "exception",
+            "message": f"Exception lors de l'envoi : {exc}",
+            "traceback": traceback.format_exc(),
+        }
 
 
 @router.post("/login", response_model=TokenResponse)
 def login(data: UserLogin, db: Session = Depends(get_session)):
     return service.login_user(db, data)
+
+
 
 
 @router.get("/me", response_model=UserOut)

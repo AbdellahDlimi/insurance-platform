@@ -1,14 +1,24 @@
 {% extends "base.html" %}
 
-{% block title %}Bienvenue sur TrustPool{% endblock %}
+{% block title %}Vérification de votre compte — TrustPool{% endblock %}
 {% block header_title %}Bienvenue 🎉{% endblock %}
 
 {% block content %}
-<p>Bonjour {{ pseudonyme }},</p>
-<p>Nous sommes ravis de vous compter parmi nous ! TrustPool est votre nouvelle plateforme d'assurance collaborative.</p>
+<p>Bonjour <strong>{{ pseudonyme }}</strong>,</p>
+<p>Nous sommes ravis de vous compter parmi nous sur TrustPool !</p>
+{% if confirmation_token %}
+<p>Pour finaliser votre inscription et activer votre compte, veuillez saisir le code de confirmation suivant :</p>
+<div style="text-align: center; margin: 25px 0;">
+    <div style="display: inline-block; background: #141414; color: #C8A96E; font-size: 32px; font-weight: 700; letter-spacing: 8px; padding: 14px 28px; border: 1px solid rgba(200, 169, 110, 0.4); border-radius: 6px;">
+        {{ confirmation_token }}
+    </div>
+</div>
+<p style="font-size: 13px; color: #888; text-align: center;">Ce code sécurisé permet de confirmer votre adresse email.</p>
+{% else %}
 <p>Vous pouvez dès à présent rejoindre un groupe ou en créer un nouveau.</p>
 <br>
 <div style="text-align: center;">
-    <a href="https://trustpool.io/dashboard" class="btn">Accéder à mon espace</a>
+    <a href="http://localhost:5173/dashboard" class="btn">Accéder à mon espace</a>
 </div>
+{% endif %}
 {% endblock %}

@@ -24,8 +24,9 @@ def test_create_checkout_session_unauthorized(verified_client, db_session):
     # Create another user
     from app.modules.users_kyc.models import Utilisateur
     other_user = Utilisateur(
-        email="other@trustpool.io",
+        email="other@gmail.com",
         pseudonyme="OtherUser",
+
         mot_de_passe_hash="hash",
         role="membre",
         statut_compte="actif"

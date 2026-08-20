@@ -12,6 +12,9 @@ import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from app.core.database import get_session
+
 
 # --- Configuration (lue depuis les variables d'environnement) ---
 SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
@@ -74,17 +77,55 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(oauth2_
 
 def require_role(required_role: str):
     """
-    Dépendance paramétrable pour restreindre un endpoint à un rôle donné :
-
-        @router.post("/xxx")
-        def admin_only(current_user: TokenPayload = Depends(require_role("admin_groupe"))):
-            ...
+    Dépendance paramétrable pour restreindre un endpoint à un rôle donné.
+    Accepte soit un rôle unique soit plusieurs rôles séparés par une virgule.
     """
     def role_checker(current_user: TokenPayload = Depends(get_current_user)) -> TokenPayload:
-        if current_user.role != required_role:
+        allowed = [r.strip() for r in required_role.split(",") if r.strip()]
+        if current_user.role not in allowed and not (current_user.role == "admin_plateforme" and "equipe_conformite" in allowed):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Accès réservé au rôle '{required_role}'",
+                detail=f"Accès réservé aux rôles: {allowed}",
             )
         return current_user
     return role_checker
+
+
+def require_roles(*required_roles: str):
+    """Permet de spécifier plusieurs rôles autorisés."""
+    def role_checker(current_user: TokenPayload = Depends(get_current_user)) -> TokenPayload:
+        allowed = list(required_roles)
+        if current_user.role not in allowed and not (current_user.role == "admin_plateforme" and "equipe_conformite" in allowed):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Accès réservé aux rôles: {allowed}",
+            )
+        return current_user
+    return role_checker
+
+
+def require_verified_kyc(
+    current_user: TokenPayload = Depends(get_current_user),
+    db: Session = Depends(get_session),
+) -> TokenPayload:
+    """
+    Vérifie que l'utilisateur connecté dispose d'un dossier KYC validé ('verified').
+    Si ce n'est pas le cas, retourne une erreur HTTP 403 avec un message explicite.
+    """
+    if current_user.role in ["admin_plateforme", "equipe_conformite"]:
+        return current_user
+
+    import uuid
+    from app.modules.users_kyc.models import CoffreKYC
+
+    kyc = db.query(CoffreKYC).filter(CoffreKYC.utilisateur_id == uuid.UUID(current_user.user_id)).first()
+    if not kyc or kyc.statut_verification != "verified":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Vous devez compléter la vérification d'identité (KYC) avant de pouvoir effectuer cette action.",
+        )
+    return current_user
+
+
+
+

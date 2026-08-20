@@ -109,30 +109,34 @@ class EmailService:
         self,
         to: str,
         pseudonyme: str,
+        confirmation_token: str | None = None,
         background_tasks: BackgroundTasks | None = None,
     ) -> None:
-        """Sent immediately after successful registration."""
+        """Sent immediately after successful registration with confirmation code."""
+        subject = f"Votre code de confirmation : {confirmation_token} — TrustPool 🎉" if confirmation_token else "Bienvenue sur TrustPool 🎉"
         self._schedule_or_send(
             background_tasks, to,
-            subject="Bienvenue sur TrustPool 🎉",
+            subject=subject,
             template=EmailTemplate.WELCOME,
-            context={"pseudonyme": pseudonyme},
+            context={"pseudonyme": pseudonyme, "confirmation_token": confirmation_token},
         )
 
-    def send_verification_email(
+    def send_confirmation_email(
         self,
         to: str,
         pseudonyme: str,
-        verification_link: str,
+        token: str,
         background_tasks: BackgroundTasks | None = None,
     ) -> None:
-        """Email verification link sent after registration."""
-        self._schedule_or_send(
-            background_tasks, to,
-            subject="Vérifiez votre adresse email — TrustPool",
-            template=EmailTemplate.VERIFY_EMAIL,
-            context={"pseudonyme": pseudonyme, "verification_link": verification_link},
+        """Envoi du code et lien de confirmation d'email (Double Opt-In)."""
+        self.send_welcome_email(
+            to=to,
+            pseudonyme=pseudonyme,
+            confirmation_token=token,
+            background_tasks=background_tasks,
         )
+
+
 
     def send_password_reset_email(
         self,

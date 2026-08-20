@@ -50,15 +50,22 @@ class NotificationService:
         user_id: UUID,
         email: str,
         pseudonyme: str,
+        confirmation_token: str | None = None,
         background_tasks: BackgroundTasks | None = None,
     ) -> None:
         """New user registration."""
         self._persist_in_app(
-            session, user_id, "welcome", "Bienvenue sur TrustPool 🎉 !"
+            session, user_id, "welcome", "Bienvenue sur TrustPool 🎉 ! N'oubliez pas de confirmer votre adresse email."
         )
-        self.email_service.send_welcome_email(
-            to=email, pseudonyme=pseudonyme, background_tasks=background_tasks
-        )
+        if confirmation_token and hasattr(self.email_service, "send_confirmation_email"):
+            self.email_service.send_confirmation_email(
+                to=email, pseudonyme=pseudonyme, token=confirmation_token, background_tasks=background_tasks
+            )
+        else:
+            self.email_service.send_welcome_email(
+                to=email, pseudonyme=pseudonyme, background_tasks=background_tasks
+            )
+
 
     def notify_claim_submitted(
         self,
