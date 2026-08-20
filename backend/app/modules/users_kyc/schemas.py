@@ -4,9 +4,17 @@ from pydantic import BaseModel, EmailStr, ConfigDict
 
 class UserCreate(BaseModel):
     """Ce que le client envoie pour s'inscrire."""
-    email: EmailStr
+    email: str
     mot_de_passe: str  # en clair ici, sera hashé dans service.py avant stockage
     pseudonyme: str
+
+
+class RegisterResponse(BaseModel):
+    """Réponse après initiation d'inscription (attente de code)."""
+    status: str = "pending"
+    email: EmailStr
+    message: str = "Un code de confirmation à 6 chiffres a été envoyé par email."
+
 
 
 class UserLogin(BaseModel):
@@ -33,14 +41,31 @@ class UserOut(BaseModel):
     role: str
     statut_compte: str
     onboarding_complete: bool
+    email_confirme: bool = False
     created_at: datetime
 
 
+
+
 class TokenResponse(BaseModel):
-    """Réponse renvoyée après un login réussi."""
+    """Réponse renvoyée après un login ou une validation de code réussie."""
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+
+
+class VerifyCodeRequest(BaseModel):
+    email: EmailStr
+    code: str
+
+
+class ResendCodeRequest(BaseModel):
+    email: EmailStr
+
+
+class TestEmailRequest(BaseModel):
+    email: EmailStr
+
 
 
 class KYCSubmit(BaseModel):

@@ -2,7 +2,7 @@ import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.auth import get_current_user, require_role, TokenPayload
+from app.core.auth import get_current_user, require_role, require_verified_kyc, TokenPayload
 from app.core.database import get_session
 from app.modules.groups import service, repository
 from app.modules.users_kyc import repository as kyc_repository
@@ -22,11 +22,11 @@ router = APIRouter(prefix="/groups", tags=["groups"])
 @router.post("", response_model=GroupOut, status_code=201)
 def create_group(
     data: GroupCreate,
-    current_user: TokenPayload = Depends(get_current_user),
+    current_user: TokenPayload = Depends(require_verified_kyc),
     db: Session = Depends(get_session),
 ):
     """
-    Crée un nouveau groupe d'assurance collaborative.
+    Crée un nouveau groupe d'assurance collaborative (requiert KYC vérifié).
     """
     return service.create_group(db, uuid.UUID(current_user.user_id), data)
 
@@ -34,9 +34,28 @@ def create_group(
 @router.get("", response_model=list[GroupOut])
 def get_groups(db: Session = Depends(get_session)):
     """
-    Liste tous les groupes collaboratifs ouverts.
+    Liste tous les groupes collaboratifs ouverts avec les informations sur leur administrateur.
     """
-    return repository.get_open_groups(db)
+    groups = repository.get_open_groups(db)
+    from app.modules.users_kyc.models import Utilisateur
+    res = []
+    for g in groups:
+        admin = db.query(Utilisateur).filter(Utilisateur.id == g.admin_id).first()
+        g_dict = {
+            "id": g.id,
+            "nom": g.nom,
+            "specialite": g.specialite,
+            "est_ouvert": g.est_ouvert,
+            "capacite_max": g.capacite_max,
+            "admin_id": g.admin_id,
+            "cotisation_de_base": g.cotisation_de_base,
+            "buffer_pool_cible": g.buffer_pool_cible,
+            "reglement_pdf_url": g.reglement_pdf_url,
+            "admin_pseudonyme": admin.pseudonyme if admin else "Admin Groupe",
+            "admin_email": admin.email if admin else None,
+        }
+        res.append(g_dict)
+    return res
 
 
 @router.get("/admin/pending-requests", response_model=list[PendingRequestOut])
@@ -56,27 +75,36 @@ def get_group(id: uuid.UUID, db: Session = Depends(get_session)):
     """
     Récupère les informations détaillées d'un groupe.
     """
-    return service.get_group_details(db, id)
+    g = service.get_group_details(db, id)
+    from app.modules.users_kyc.models import Utilisateur
+    admin = db.query(Utilisateur).filter(Utilisateur.id == g.admin_id).first() if g else None
+    return {
+        "id": g.id,
+        "nom": g.nom,
+        "specialite": g.specialite,
+        "est_ouvert": g.est_ouvert,
+        "capacite_max": g.capacite_max,
+        "admin_id": g.admin_id,
+        "cotisation_de_base": g.cotisation_de_base,
+        "buffer_pool_cible": g.buffer_pool_cible,
+        "reglement_pdf_url": g.reglement_pdf_url,
+        "admin_pseudonyme": admin.pseudonyme if admin else "Admin Groupe",
+        "admin_email": admin.email if admin else None,
+    }
+
 
 
 @router.post("/{id}/join-request", response_model=JoinRequestOut, status_code=201)
 def join_request(
     id: uuid.UUID,
-    current_user: TokenPayload = Depends(get_current_user),
+    current_user: TokenPayload = Depends(require_verified_kyc),
     db: Session = Depends(get_session),
 ):
     """
     Permet à un utilisateur dont le KYC est vérifié de demander à rejoindre un groupe.
     """
-    from fastapi import HTTPException, status
-    kyc = kyc_repository.get_kyc_by_user_id(db, uuid.UUID(current_user.user_id))
-    if not kyc or kyc.statut_verification != "verified":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="Vérification KYC requise pour rejoindre un groupe."
-        )
-        
     return service.request_to_join_group(db, uuid.UUID(current_user.user_id), id)
+
 
 
 @router.get("/{id}/join-requests", response_model=list[JoinRequestOut])

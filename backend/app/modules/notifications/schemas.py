@@ -8,6 +8,12 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+class NotificationDirectCreate(BaseModel):
+    destinataire_id: UUID
+    type: str = "compliance_alert"
+    contenu: str
+
+
 class NotificationResponse(BaseModel):
     """Réponse API pour une notification."""
     id: UUID
@@ -18,3 +24,5 @@ class NotificationResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+

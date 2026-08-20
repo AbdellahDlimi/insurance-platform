@@ -13,11 +13,12 @@ const NOTIF_CONFIG = {
   adhesion:      { icon: Users,    color: '#8BB8E8', label: 'Adhésion',     route: '/groups' },
   cotisation:    { icon: Wallet,   color: '#c8a96e', label: 'Cotisation',   route: '/groups' },
   sinistre:      { icon: AlertTriangle, color: '#E08888', label: 'Sinistre', route: '/claims' },
-  claim_submitted: { icon: AlertTriangle, color: '#E0A870', label: 'Sinistre', route: '/claims' },
   fraude:        { icon: Eye,      color: '#E08888', label: 'Fraude',       route: '/dashboard' },
   anonymat:      { icon: Lock,     color: '#8BB8E8', label: 'Anonymat',     route: '/dashboard' },
+  compliance_alert: { icon: Shield, color: '#c8a96e', label: 'Conformité', route: '/groups' },
 };
 const DEFAULT_CONFIG = { icon: Bell, color: 'var(--paper-dim)', label: 'Notification', route: '/dashboard' };
+
 
 /* ── Relative time helper ── */
 const timeAgo = (dateStr) => {

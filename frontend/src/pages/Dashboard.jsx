@@ -739,8 +739,37 @@ export const DashboardPage = ({ user, navigate }) => {
           </motion.div>
         </div>
 
+        {/* ── EMAIL CONFIRMATION STATUS NOTICES (Double Opt-In) ── */}
+        {typeof window !== 'undefined' && window.location.search.includes('email_confirmed=true') && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '1rem',
+              padding: '0.85rem 1.25rem',
+              marginBottom: '1.5rem',
+              background: 'rgba(90,158,124,0.1)',
+              borderLeft: '3px solid var(--success)',
+              border: '1px solid rgba(90,158,124,0.3)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <CheckCircle2 size={18} color="var(--success)" />
+              <div>
+                <p style={{ fontWeight: 600, color: 'var(--paper)', fontSize: '0.875rem' }}>Adresse email vérifiée avec succès !</p>
+                <p style={{ color: 'var(--paper-dim)', fontSize: '0.75rem', marginTop: '0.1rem' }}>Votre compte bénéficie désormais d'un niveau de sécurité optimal.</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* ── KYC NOTIFICATIONS / ALERTS ── */}
         {user.kyc_status === 'pending' && (
+
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}

@@ -7,9 +7,20 @@ from datetime import datetime, timezone
 
 from sqlalchemy import Column, String, Text, DateTime, Index, text, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from pgvector.sqlalchemy import Vector
+try:
+    from pgvector.sqlalchemy import Vector
+except ImportError:
+    from sqlalchemy.types import UserDefinedType
+    class Vector(UserDefinedType):
+        def __init__(self, dim=None):
+            self.dim = dim
+        def get_col_spec(self, **kw):
+            return f"vector({self.dim})" if self.dim else "vector"
+
+
 
 from app.core.database import Base
+
 from app.modules.users_kyc.models import Utilisateur  # Important pour la Foreign Key
 
 

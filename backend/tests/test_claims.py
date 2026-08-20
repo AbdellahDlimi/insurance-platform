@@ -1,4 +1,4 @@
-def test_submit_claim_and_validate(verified_client, client):
+def test_submit_claim_and_validate(verified_client, client, db_session):
     admin_client = verified_client["client"]
     admin_id = verified_client["user"]["id"]
     
@@ -16,13 +16,17 @@ def test_submit_claim_and_validate(verified_client, client):
     group_id = group_res.json()["id"]
     
     # L'admin doit se reconnecter pour mettre à jour son token
-    login_admin_res = admin_client.post("/users_kyc/login", json={"email": "auth@trustpool.io", "mot_de_passe": "password123"})
+    login_admin_res = admin_client.post("/users_kyc/login", json={"email": "auth@gmail.com", "mot_de_passe": "password123"})
     admin_client.headers.update({"Authorization": f"Bearer {login_admin_res.json()['access_token']}"})
     
     # 2. Création et adhésion d'un membre
-    client.post("/users_kyc/register", json={"email": "member2@trustpool.io", "mot_de_passe": "pass", "pseudonyme": "M2"})
-    member_token = client.post("/users_kyc/login", json={"email": "member2@trustpool.io", "mot_de_passe": "pass"}).json()["access_token"]
+    from app.modules.users_kyc import repository as kyc_repo
+    from passlib.context import CryptContext
+    pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    kyc_repo.create_user(db_session, "member2@gmail.com", pwd_ctx.hash("pass"), "M2", email_confirme=True)
+    member_token = client.post("/users_kyc/login", json={"email": "member2@gmail.com", "mot_de_passe": "pass"}).json()["access_token"]
     member_headers = {"Authorization": f"Bearer {member_token}"}
+
     
     member_id = client.get("/users_kyc/me", headers=member_headers).json()["id"]
     

@@ -5,10 +5,11 @@ appel au service, retour de la réponse. Aucune logique métier ici.
 """
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.core.auth import get_current_user, require_role, TokenPayload
+from app.core.auth import get_current_user, require_role, require_verified_kyc, TokenPayload
 from app.core.database import get_session
 from app.modules.claims import service
 from app.modules.claims.schemas import *
@@ -33,10 +34,10 @@ from app.modules.groups.models import Adhesion
 )
 def create_claim(
     data: ClaimCreate,
-    current_user: TokenPayload = Depends(get_current_user),
+    current_user: TokenPayload = Depends(require_verified_kyc),
     session: Session = Depends(get_session),
 ):
-    """Un membre déclare un sinistre. Émet l'event Kafka 'claim.created'."""
+    """Un membre déclare un sinistre (requiert KYC vérifié). Émet l'event Kafka 'claim.created'."""
     sinistre = service.declare_sinistre(
         session, data, utilisateur_id=UUID(current_user.user_id)
     )
@@ -55,9 +56,10 @@ async def create_claim_with_file(
     description: str = Form(...),
     montant_declare: float = Form(...),
     file: UploadFile = File(None),
-    current_user: TokenPayload = Depends(get_current_user),
+    current_user: TokenPayload = Depends(require_verified_kyc),
     session: Session = Depends(get_session),
 ):
+
     """
     Déclare un sinistre avec téléversement de justificatif (attestation, facture, constat).
     Exécute automatiquement l'analyseur IA de preuves et le calcul du score de fraude.
@@ -200,6 +202,71 @@ def get_piece_file(
 # ── Alertes de fraude ────────────────────────────────────────────────────────
 
 @router.get(
+    "/alertes/all",
+    summary="Lister toutes les alertes de fraude (Équipe Conformité)",
+)
+def list_all_fraud_alerts(
+    statut: Optional[str] = Query(None, description="Filtrer par statut (ouverte, traitee, escaladee)"),
+    current_user: TokenPayload = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    from app.modules.claims.models import AlerteFraude, Sinistre
+    from app.modules.groups.models import Groupe, Adhesion
+    from app.modules.users_kyc.models import Utilisateur
+
+    query = session.query(AlerteFraude)
+    if statut:
+        query = query.filter(AlerteFraude.statut_traitement == statut)
+    
+    alertes = query.order_by(AlerteFraude.created_at.desc()).all()
+    result = []
+    for a in alertes:
+        sin = session.query(Sinistre).filter(Sinistre.id == a.sinistre_id).first()
+        grp = session.query(Groupe).filter(Groupe.id == sin.groupe_id).first() if sin else None
+        adh = session.query(Adhesion).filter(Adhesion.id == sin.adhesion_id).first() if sin else None
+        user = session.query(Utilisateur).filter(Utilisateur.id == adh.utilisateur_id).first() if adh else None
+
+        result.append({
+            "id": str(a.id),
+            "sinistre_id": str(a.sinistre_id),
+            "score": float(a.score),
+            "niveau_severite": a.niveau_severite,
+            "explication_ia": a.explication_ia,
+            "statut_traitement": a.statut_traitement,
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+            "groupe_nom": grp.nom if grp else "Groupe Communautaire",
+            "groupe_specialite": grp.specialite if grp else "Pool Mutuel",
+            "montant_declare": float(sin.montant_declare) if sin else 0.0,
+            "description_sinistre": sin.description if sin else "",
+            "resume_ia": sin.resume_ia if sin else None,
+            "membre_pseudonyme": user.pseudonyme if user else "Membre #Anonyme",
+            "sinistre_statut": sin.statut if sin else "en_attente",
+        })
+    return result
+
+
+@router.post(
+    "/alertes/{alerte_id}/traiter",
+    summary="Mettre à jour le statut d'une alerte de fraude (Équipe Conformité)",
+)
+def update_fraud_alert_status(
+    alerte_id: UUID,
+    statut: str = Query(..., description="Nouveau statut (ouverte, traitee, escaladee, classee)"),
+    current_user: TokenPayload = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    from app.modules.claims.models import AlerteFraude
+    alerte = session.query(AlerteFraude).filter(AlerteFraude.id == alerte_id).first()
+    if not alerte:
+        raise HTTPException(status_code=404, detail="Alerte non trouvée")
+    
+    alerte.statut_traitement = statut
+    session.commit()
+    session.refresh(alerte)
+    return {"id": str(alerte.id), "statut_traitement": alerte.statut_traitement, "message": "Statut mis à jour"}
+
+
+@router.get(
     "/{sinistre_id}/alertes",
     response_model=list[AlerteFraudeResponse],
     summary="Lister les alertes de fraude d'un sinistre",
@@ -210,6 +277,7 @@ def list_alertes(
     session: Session = Depends(get_session),
 ):
     return repository.list_alertes_by_sinistre(session, sinistre_id)
+
 
 
 

@@ -24,6 +24,9 @@ class GroupOut(BaseModel):
     cotisation_de_base: float
     buffer_pool_cible: float | None
     reglement_pdf_url: str | None
+    admin_pseudonyme: Optional[str] = None
+    admin_email: Optional[str] = None
+
 
 
 class JoinRequestCreate(BaseModel):

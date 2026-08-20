@@ -9,7 +9,7 @@ from app.core.database import Base, get_session
 
 # Importation de tous les modèles ORM pour s'assurer que Base.metadata les connait
 from app.modules.audit.models import JournalAudit, DemandeLeveeAnonymat
-from app.modules.users_kyc.models import Utilisateur, CoffreKYC, ProfilOnboarding
+from app.modules.users_kyc.models import Utilisateur, CoffreKYC, ProfilOnboarding, PendingRegistration
 from app.modules.notifications.models import Notification
 from app.modules.groups.models import Groupe, DemandeAdhesion, Adhesion
 from app.modules.claims.models import Sinistre, PieceJustificative, AlerteFraude
@@ -23,6 +23,7 @@ class MockNotificationService:
     def notify_welcome(self, *args, **kwargs): pass
     def notify_claim_submitted(self, *args, **kwargs): pass
     def notify_claim_status_changed(self, *args, **kwargs): pass
+    def _persist_in_app(self, *args, **kwargs): pass
 
 # Configuration de la base de données PostgreSQL de test
 SQLALCHEMY_DATABASE_URL = "postgresql://admin:password@localhost:5432/test_insurance_db"
@@ -78,25 +79,26 @@ def client(db_session):
     app.dependency_overrides.clear()
 
 @pytest.fixture(scope="function")
-def auth_client(client):
+def auth_client(client, db_session):
     """
-    Crée un utilisateur, se connecte, et retourne le client configuré avec le token,
+    Crée un utilisateur confirmé, se connecte, et retourne le client configuré avec le token,
     ainsi que les données de l'utilisateur.
     """
-    client.post(
-        "/users_kyc/register",
-        json={
-            "email": "auth@trustpool.io",
-            "mot_de_passe": "password123",
-            "pseudonyme": "AuthUser"
-        }
+    from app.modules.users_kyc import repository as kyc_repo
+    from passlib.context import CryptContext
+    pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    kyc_repo.create_user(
+        db_session,
+        email="auth@gmail.com",
+        mot_de_passe_hash=pwd_ctx.hash("password123"),
+        pseudonyme="AuthUser#1234",
+        email_confirme=True,
     )
     login_res = client.post(
         "/users_kyc/login",
-        json={"email": "auth@trustpool.io", "mot_de_passe": "password123"}
+        json={"email": "auth@gmail.com", "mot_de_passe": "password123"}
     )
     token = login_res.json()["access_token"]
-    
     client.headers.update({"Authorization": f"Bearer {token}"})
     me_res = client.get("/users_kyc/me")
     

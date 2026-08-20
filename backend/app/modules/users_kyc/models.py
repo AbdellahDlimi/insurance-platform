@@ -17,9 +17,12 @@ class Utilisateur(Base):
     role = Column(String(50), nullable=False, default="membre")
     statut_compte = Column(String(50), nullable=False, default="actif")
     onboarding_complete = Column(Boolean, nullable=False, default=False)
+    email_confirme = Column(Boolean, nullable=False, default=False)
+    token_confirmation_email = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     profil_onboarding = relationship("ProfilOnboarding", back_populates="utilisateur", uselist=False)
+
 
 
 class EquipeConformite(Base):
@@ -65,3 +68,15 @@ class ProfilOnboarding(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     utilisateur = relationship("Utilisateur", back_populates="profil_onboarding")
+
+
+class PendingRegistration(Base):
+    __tablename__ = "pending_registrations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    mot_de_passe_hash = Column(String(255), nullable=False)
+    pseudonyme = Column(String(100), nullable=False)
+    code_verification_hash = Column(String(255), nullable=False)
+    date_creation = Column(DateTime(timezone=True), default=datetime.utcnow)
+    date_expiration = Column(DateTime(timezone=True), nullable=False)

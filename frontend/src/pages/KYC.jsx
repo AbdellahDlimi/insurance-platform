@@ -25,6 +25,16 @@ export const KYCPage = ({ navigate }) => {
   const [loading, setLoading] = useState(false);
   const [kycData, setKycData] = useState({});
   const [file, setFile] = useState(null);
+  const [contextMessage, setContextMessage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const msg = sessionStorage.getItem('kyc_blocked_message');
+      if (msg) {
+        sessionStorage.removeItem('kyc_blocked_message');
+        return msg;
+      }
+    }
+    return null;
+  });
 
   const handleStep1 = (e) => {
     e.preventDefault();
@@ -74,7 +84,27 @@ export const KYCPage = ({ navigate }) => {
           <ChevronLeft size={14} /> Retour
         </button>
 
+        {contextMessage && (
+          <div style={{
+            marginBottom: '1.75rem',
+            background: 'rgba(200, 169, 110, 0.12)',
+            border: '1px solid var(--gold-line)',
+            padding: '0.9rem 1.25rem',
+            borderRadius: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            color: 'var(--paper)'
+          }}>
+            <Lock size={18} color="var(--gold)" />
+            <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+              {contextMessage}
+            </span>
+          </div>
+        )}
+
         <SectionLabel>Vérification d'identité</SectionLabel>
+
         <h1 className="text-display-sm" style={{ marginBottom: '0.5rem' }}>
           KYC — <DisplayItalic>Coffre-fort</DisplayItalic>
         </h1>

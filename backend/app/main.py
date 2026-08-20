@@ -29,8 +29,22 @@ from sqlalchemy import text
 Base.metadata.create_all(bind=engine)
 try:
     with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE utilisateur ADD COLUMN IF NOT EXISTS email_confirme BOOLEAN NOT NULL DEFAULT FALSE;"))
+        conn.execute(text("ALTER TABLE utilisateur ADD COLUMN IF NOT EXISTS token_confirmation_email VARCHAR(255);"))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS pending_registrations (
+                id UUID PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                mot_de_passe_hash VARCHAR(255) NOT NULL,
+                pseudonyme VARCHAR(100) NOT NULL,
+                code_verification_hash VARCHAR(255) NOT NULL,
+                date_creation TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                date_expiration TIMESTAMP WITH TIME ZONE NOT NULL
+            );
+        """))
         conn.execute(text("ALTER TABLE sinistre ADD COLUMN IF NOT EXISTS motif_rejet TEXT;"))
         conn.execute(text("ALTER TABLE sinistre ADD COLUMN IF NOT EXISTS commentaire_validation TEXT;"))
+
         
         # Mettre à jour nb_sinistres_periode et le coefficient_actuel (+0.20 par sinistre validé) pour toutes les adhésions
         conn.execute(text("""
