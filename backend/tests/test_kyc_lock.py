@@ -1,31 +1,37 @@
 import uuid
 from datetime import datetime, timezone
 import pytest
+from passlib.context import CryptContext
 from app.modules.users_kyc import repository as kyc_repo
 from app.modules.groups import repository as groups_repo
 from app.modules.groups.schemas import GroupCreate
-from app.modules.cagnotte import repository as cag_repo
+
+pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 def test_kyc_lock_blocks_unverified_users_on_sensitive_endpoints(client, db_session):
-    # 1. Inscription d'un utilisateur non vérifié (sans KYC vérifié)
-    register_res = client.post(
-        "/users_kyc/register",
-        json={
-            "email": "unverified@gmail.com",
-            "mot_de_passe": "password123",
-            "pseudonyme": "UnverifiedUser"
-        }
+    """
+    Vérifie qu'un utilisateur sans KYC validé reçoit une erreur HTTP 403
+    sur les endpoints sensibles : adhésion groupe, sinistre, paiement cotisation.
+    """
+    # 1. Création d'un utilisateur confirmé par email mais sans KYC vérifié
+    user = kyc_repo.create_user(
+        db=db_session,
+        email="unverified_kyc@gmail.com",
+        mot_de_passe_hash=pwd_ctx.hash("password123"),
+        pseudonyme="UnverifiedKYCUser",
+        email_confirme=True,
     )
-    assert register_res.status_code == 201
-    user_id = register_res.json()["id"]
+    user_id = str(user.id)
 
     login_res = client.post(
         "/users_kyc/login",
         json={
-            "email": "unverified@gmail.com",
+            "email": "unverified_kyc@gmail.com",
             "mot_de_passe": "password123"
         }
     )
+    assert login_res.status_code == 200
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -59,19 +65,20 @@ def test_kyc_lock_blocks_unverified_users_on_sensitive_endpoints(client, db_sess
 
 
 def test_kyc_lock_allows_verified_users(client, db_session):
-    # 1. Inscription d'un utilisateur
-    register_res = client.post(
-        "/users_kyc/register",
-        json={
-            "email": "verified@gmail.com",
-            "mot_de_passe": "password123",
-            "pseudonyme": "VerifiedUser"
-        }
+    """
+    Vérifie qu'un utilisateur avec KYC validé ('verified') franchit le verrou KYC.
+    """
+    # 1. Création de l'utilisateur
+    user = kyc_repo.create_user(
+        db=db_session,
+        email="verified_kyc@gmail.com",
+        mot_de_passe_hash=pwd_ctx.hash("password123"),
+        pseudonyme="VerifiedKYCUser",
+        email_confirme=True,
     )
-    assert register_res.status_code == 201
-    user_id = register_res.json()["id"]
+    user_id = str(user.id)
 
-    # 2. On valide le KYC de l'utilisateur
+    # 2. Validation de son KYC dans le coffre
     kyc_repo.create_coffre_kyc(
         db_session,
         utilisateur_id=uuid.UUID(user_id),
@@ -81,14 +88,14 @@ def test_kyc_lock_allows_verified_users(client, db_session):
         statut_verification="verified"
     )
 
-
     login_res = client.post(
         "/users_kyc/login",
         json={
-            "email": "verified@gmail.com",
+            "email": "verified_kyc@gmail.com",
             "mot_de_passe": "password123"
         }
     )
+    assert login_res.status_code == 200
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -99,6 +106,8 @@ def test_kyc_lock_allows_verified_users(client, db_session):
         data=GroupCreate(nom="Test Verified Group", specialite="Tech", cotisation_de_base=40.0)
     )
 
-    # A. Test Adhésion (POST /groups/{id}/join-request) -> passe le verrou KYC (ne renvoie pas 403 KYC)
+    # A. Test Adhésion (POST /groups/{id}/join-request) -> franchit le verrou KYC
     res_join = client.post(f"/groups/{group.id}/join-request", headers=headers)
-    assert res_join.status_code != 403 or "vérification d'identité (KYC)" not in str(res_join.json())
+    # Ne doit pas lever l'erreur 403 KYC
+    if res_join.status_code == 403:
+        assert "vérification d'identité (KYC)" not in res_join.json()["detail"]

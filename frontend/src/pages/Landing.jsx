@@ -51,9 +51,9 @@ export const LandingPage = ({ navigate }) => {
   ];
 
   const steps = [
-    { num: '01', title: 'Vérification KYC',   desc: 'Votre identité est vérifiée puis transformée en pseudonyme chiffré.', img: '/Explainer_video_about_KYC_secu.mp4' },
-    { num: '02', title: 'Rejoignez un Groupe', desc: 'L\'IA recommande les communautés qui correspondent à vos besoins.',   img: '/groupe.png' },
-    { num: '03', title: 'Cotisez & Protégez',  desc: 'Alimentez la cagnotte. En cas de coup dur, la communauté valide et indemnise.', img: '/illustration.png' },
+    { num: '01', title: 'Vérification KYC',   desc: 'Votre identité est vérifiée puis transformée en pseudonyme chiffré.', img: '/video2_kyc_security.mp4' },
+    { num: '02', title: 'Rejoignez un Groupe', desc: 'L\'IA recommande les communautés qui correspondent à vos besoins.',   img: '/video3_matchmaker_ia.mp4' },
+    { num: '03', title: 'Cotisez & Protégez',  desc: 'Alimentez la cagnotte. En cas de coup dur, la communauté valide et indemnise.', img: '/video4_cagnotte_dashboard.mp4' },
   ];
 
   return (
@@ -253,16 +253,17 @@ export const LandingPage = ({ navigate }) => {
         </div>
       </section>
 
-      {/* ── COMMUNITY SECTION ── */}
-      <section style={{ paddingBlock: '0', position: 'relative', overflow: 'hidden', minHeight: '400px' }}>
-        <img
-          src="/groupe.png"
-          alt="Communauté TrustPool"
-          style={{ width: '100%', height: '400px', objectFit: 'cover', display: 'block', opacity: 0.55, filter: 'grayscale(15%)' }}
+      {/* ── COMMUNITY & SOCIAL PROOF SECTION ── */}
+      <section style={{ paddingBlock: '0', position: 'relative', overflow: 'hidden', minHeight: '440px' }}>
+        <video
+          src="/video9_social_proof.mp4"
+          autoPlay loop muted playsInline
+          poster="/groupe.png"
+          style={{ width: '100%', height: '440px', objectFit: 'cover', display: 'block', opacity: 0.6, filter: 'grayscale(10%)' }}
         />
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'linear-gradient(90deg, rgba(12,12,12,0.95) 35%, rgba(12,12,12,0.4) 100%)',
+          background: 'linear-gradient(90deg, rgba(12,12,12,0.95) 40%, rgba(12,12,12,0.5) 100%)',
           display: 'flex', alignItems: 'center',
         }}>
           <div className="container-editorial">

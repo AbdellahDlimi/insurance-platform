@@ -491,3 +491,132 @@ def get_onboarding_status(db: Session, user_id: uuid.UUID):
             detail="Le profil d'onboarding n'a pas encore été complété."
         )
     return profil
+
+
+# ── Gestion de la réinitialisation de mot de passe ────────────────────────────
+
+_reset_rate_limits: dict[str, list[datetime]] = {}
+
+
+def _check_rate_limit(key: str, max_requests: int = 3, window_minutes: int = 60) -> None:
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(minutes=window_minutes)
+    
+    # Nettoyage des anciennes tentatives
+    attempts = [t for t in _reset_rate_limits.get(key, []) if t > cutoff]
+    if len(attempts) >= max_requests:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Trop de demandes de réinitialisation. Veuillez réessayer dans une heure.",
+        )
+    attempts.append(now)
+    _reset_rate_limits[key] = attempts
+
+
+def request_password_reset(
+    db: Session,
+    email: str,
+    notification_service: NotificationService,
+    background_tasks: BackgroundTasks | None = None,
+    client_ip: str | None = None,
+) -> dict:
+    """
+    Traite la demande de réinitialisation de mot de passe.
+    Génère un code OTP à 6 chiffres, l'enregistre hashé et l'envoie par email.
+    """
+    clean_email = email.strip().lower()
+
+    # Rate limiting par email et par IP
+    _check_rate_limit(f"email:{clean_email}", max_requests=3, window_minutes=60)
+    if client_ip:
+        _check_rate_limit(f"ip:{client_ip}", max_requests=5, window_minutes=60)
+
+    user = repository.get_user_by_email(db, clean_email)
+    if user:
+        reset_code = f"{secrets.randbelow(900000) + 100000}"
+        token_hash = pwd_context.hash(reset_code)
+        now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(minutes=30)
+
+        repository.create_password_reset_token(
+            db=db,
+            utilisateur_id=user.id,
+            token_hash=token_hash,
+            date_expiration=expires_at,
+        )
+
+        frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+        reset_link = f"{frontend_url}/reset-password?token={reset_code}&email={clean_email}"
+
+        print(f"\n=======================================================")
+        print(f"[PASSWORD RESET CODE DISPATCH] Pour: {clean_email} | Code: {reset_code}")
+        print(f"=======================================================\n")
+
+        if hasattr(notification_service, "email_service") and notification_service.email_service:
+            notification_service.email_service.send_password_reset_email(
+                to=user.email,
+                pseudonyme=user.pseudonyme,
+                reset_link=reset_link,
+                reset_code=reset_code,
+                expires_minutes=30,
+                background_tasks=background_tasks,
+            )
+
+    # Réponse générique aveugle systématique (ne divulgue pas si l'email existe)
+    return {
+        "message": "Si un compte existe avec cet email, un code de réinitialisation vous a été envoyé par email."
+    }
+
+
+def reset_password_with_token(
+    db: Session,
+    token: str,
+    nouveau_mot_de_passe: str,
+    email: str | None = None,
+) -> dict:
+    """
+    Vérifie le code OTP ou le token de réinitialisation, met à jour le mot de passe
+    et marque le token comme consommé.
+    """
+    clean_token = token.strip().replace(" ", "")
+    now = datetime.now(timezone.utc)
+    active_tokens = repository.get_active_reset_tokens(db)
+
+    # Si email fourni, filtrer sur cet utilisateur
+    if email:
+        user = repository.get_user_by_email(db, email.strip().lower())
+        if user:
+            active_tokens = [t for t in active_tokens if t.utilisateur_id == user.id]
+
+    matching_token = None
+    for t in active_tokens:
+        if pwd_context.verify(clean_token, t.token_hash):
+            matching_token = t
+            break
+
+    if not matching_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Le code de réinitialisation est invalide ou a déjà été utilisé.",
+        )
+
+    # Vérification expiration
+    expires_at = matching_token.date_expiration
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    if expires_at < now:
+        repository.mark_reset_token_as_used(db, matching_token.id)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Le code de réinitialisation a expiré. Veuillez refaire une demande.",
+        )
+
+    # Mise à jour du mot de passe
+    new_password_hash = pwd_context.hash(nouveau_mot_de_passe)
+    repository.update_user_password(db, matching_token.utilisateur_id, new_password_hash)
+    repository.mark_reset_token_as_used(db, matching_token.id)
+
+    return {
+        "message": "Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter."
+    }

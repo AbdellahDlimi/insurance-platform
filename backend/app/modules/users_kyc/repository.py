@@ -5,7 +5,13 @@ Aucune logique métier ici — uniquement des opérations CRUD.
 import uuid
 from datetime import datetime
 from sqlalchemy.orm import Session
-from app.modules.users_kyc.models import Utilisateur, CoffreKYC, EquipeConformite, PendingRegistration
+from app.modules.users_kyc.models import (
+    Utilisateur,
+    CoffreKYC,
+    EquipeConformite,
+    PendingRegistration,
+    PasswordResetToken,
+)
 
 
 def get_user_by_email(db: Session, email: str) -> Utilisateur | None:
@@ -213,3 +219,52 @@ def update_user_profile(db: Session, user_id: uuid.UUID, data: dict) -> Utilisat
     db.commit()
     db.refresh(user)
     return user
+
+
+def create_password_reset_token(
+    db: Session,
+    utilisateur_id: uuid.UUID,
+    token_hash: str,
+    date_expiration: datetime,
+) -> PasswordResetToken:
+    from app.modules.users_kyc.models import PasswordResetToken
+    # Invalider d'abord tous les tokens actifs existants pour cet utilisateur
+    db.query(PasswordResetToken).filter(
+        PasswordResetToken.utilisateur_id == utilisateur_id,
+        PasswordResetToken.utilise == False,
+    ).update({"utilise": True})
+    
+    reset_entry = PasswordResetToken(
+        utilisateur_id=utilisateur_id,
+        token_hash=token_hash,
+        date_expiration=date_expiration,
+        utilise=False,
+    )
+    db.add(reset_entry)
+    db.commit()
+    db.refresh(reset_entry)
+    return reset_entry
+
+
+def get_active_reset_tokens(db: Session) -> list[PasswordResetToken]:
+    from app.modules.users_kyc.models import PasswordResetToken
+    return db.query(PasswordResetToken).filter(
+        PasswordResetToken.utilise == False,
+    ).all()
+
+
+def mark_reset_token_as_used(db: Session, token_id: uuid.UUID) -> None:
+    from app.modules.users_kyc.models import PasswordResetToken
+    token_record = db.query(PasswordResetToken).filter(PasswordResetToken.id == token_id).first()
+    if token_record:
+        token_record.utilise = True
+        db.commit()
+
+
+def update_user_password(db: Session, user_id: uuid.UUID, new_password_hash: str) -> Utilisateur | None:
+    user = get_user_by_id(db, user_id)
+    if user:
+        user.mot_de_passe_hash = new_password_hash
+        db.commit()
+        db.refresh(user)
+    return user
