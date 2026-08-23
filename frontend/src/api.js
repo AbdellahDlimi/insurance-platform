@@ -52,6 +52,17 @@ export const api = {
     const res = await axiosClient.post('/users_kyc/resend-code', { email });
     return res.data;
   },
+  forgotPassword: async (email) => {
+    const res = await axiosClient.post('/users_kyc/forgot-password', { email });
+    return res.data;
+  },
+  resetPassword: async (token, newPassword) => {
+    const res = await axiosClient.post('/users_kyc/reset-password', {
+      token,
+      nouveau_mot_de_passe: newPassword,
+    });
+    return res.data;
+  },
   updateProfile: async (data) => {
 
     const res = await axiosClient.patch('/users_kyc/me', data);

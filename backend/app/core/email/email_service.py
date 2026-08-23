@@ -36,10 +36,12 @@ class EmailService:
     """
     High-level email orchestrator.
     Instantiated once and injected via FastAPI dependency injection.
+    Supports primary provider with automatic fallback to secondary provider (e.g. Gmail SMTP).
     """
 
-    def __init__(self, client: ResendClient, from_address: str) -> None:
+    def __init__(self, client: Any, from_address: str, fallback_client: Any = None) -> None:
         self._client = client
+        self._fallback_client = fallback_client
         self._from = from_address
 
     # ── Internal helpers ──────────────────────────────────────────────────────
@@ -54,7 +56,7 @@ class EmailService:
         attachments: list[dict[str, Any]] | None = None,
         tags: list[dict[str, str]] | None = None,
     ) -> EmailResult:
-        """Render template, build payload and dispatch synchronously."""
+        """Render template, build payload and dispatch synchronously with automatic fallback."""
         recipients = [to] if isinstance(to, str) else to
         html = render_template(template, context)
         payload = EmailPayload(
@@ -66,7 +68,22 @@ class EmailService:
             attachments=attachments or [],
             tags=tags or [],
         )
-        return self._client.send(payload)
+        
+        result = self._client.send(payload)
+        if not result.success and self._fallback_client:
+            logger.warning(
+                "[EmailService] Primary provider failed (error: %s). Activating automatic fallback client...",
+                result.error,
+            )
+            fallback_result = self._fallback_client.send(payload)
+            if fallback_result.success:
+                logger.info("[EmailService] Fallback provider succeeded successfully for %s", recipients)
+                return fallback_result
+            else:
+                logger.error("[EmailService] Fallback provider also failed (error: %s)", fallback_result.error)
+                return fallback_result
+
+        return result
 
     def _schedule_or_send(
         self,
@@ -143,16 +160,19 @@ class EmailService:
         to: str,
         pseudonyme: str,
         reset_link: str,
+        reset_code: str | None = None,
         expires_minutes: int = 30,
         background_tasks: BackgroundTasks | None = None,
     ) -> None:
+        subject = f"Votre code de réinitialisation : {reset_code} — TrustPool 🔒" if reset_code else "Réinitialisation de votre mot de passe — TrustPool"
         self._schedule_or_send(
             background_tasks, to,
-            subject="Réinitialisation de votre mot de passe — TrustPool",
+            subject=subject,
             template=EmailTemplate.PASSWORD_RESET,
             context={
                 "pseudonyme": pseudonyme,
                 "reset_link": reset_link,
+                "reset_code": reset_code or "",
                 "expires_minutes": expires_minutes,
             },
         )

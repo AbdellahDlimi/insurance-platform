@@ -159,7 +159,7 @@ export const HowItWorksPage = ({ navigate }) => {
         'Pseudonyme généré automatiquement',
         'Levée d\'anonymat uniquement en cas de fraude avérée',
       ],
-      img: '/Explainer_video_about_KYC_secu.mp4',
+      img: '/video2_kyc_security.mp4',
       reverse: false,
     },
     {
@@ -173,7 +173,7 @@ export const HowItWorksPage = ({ navigate }) => {
         'Validation de la demande d\'adhésion par l\'Admin',
         'Transparence totale sur la composition du groupe',
       ],
-      img: '/groupe.png',
+      img: '/video3_matchmaker_ia.mp4',
       reverse: true,
     },
     {
@@ -187,7 +187,7 @@ export const HowItWorksPage = ({ navigate }) => {
         '15 % des cotisations allouées au Buffer Pool',
         'Visualisation en direct de la cagnotte',
       ],
-      img: '/Product_demo_animation_showing.mp4',
+      img: '/video4_cagnotte_dashboard.mp4',
       reverse: false,
     },
     {
@@ -201,7 +201,7 @@ export const HowItWorksPage = ({ navigate }) => {
         'Détection de fraude via Isolation Forest',
         'Notification immédiate à l\'Admin et au groupe',
       ],
-      img: '/kyc.png',
+      img: '/video5_sinistre_validation.mp4',
       reverse: true,
     },
     {
@@ -215,7 +215,7 @@ export const HowItWorksPage = ({ navigate }) => {
         'Virement automatisé sur validation',
         'Historique complet et auditable',
       ],
-      img: '/Financial_dashboard_animation.mp4',
+      img: '/video7_gouvernance.mp4',
       reverse: false,
     },
   ];
@@ -302,8 +302,40 @@ export const HowItWorksPage = ({ navigate }) => {
         </div>
       </section>
 
+      {/* ── FULL WALKTHROUGH DEMO VIDEO (VIDEO 10) ── */}
+      <section style={{ paddingBlock: '6rem', borderTop: '1px solid var(--gold-line)' }}>
+        <div className="container-editorial" style={{ maxWidth: '1000px', textAlign: 'center' }}>
+          <SectionLabel>Démonstration interactive</SectionLabel>
+          <h2 className="text-display-md" style={{ marginBottom: '1.25rem' }}>
+            Découvrez <DisplayItalic>TrustPool</DisplayItalic> en action
+          </h2>
+          <p style={{ color: 'var(--paper-dim)', fontSize: '0.9375rem', fontWeight: 300, maxWidth: '60ch', marginInline: 'auto', marginBottom: '2.5rem', lineHeight: 1.7 }}>
+            Du formulaire d'inscription à l'indemnisation d'un sinistre, suivez le parcours complet en vidéo.
+          </p>
+
+          <div style={{
+            position: 'relative',
+            borderRadius: '2px',
+            border: '1px solid var(--gold-line)',
+            overflow: 'hidden',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+            background: 'var(--ink-80)',
+          }}>
+            <video
+              src="/video10_onboarding_demo.mp4"
+              controls
+              autoPlay
+              muted
+              loop
+              playsInline
+              style={{ width: '100%', maxHeight: '540px', objectFit: 'contain', display: 'block' }}
+            />
+          </div>
+        </div>
+      </section>
+
       {/* ── FAQ ── */}
-      <section style={{ paddingBlock: '6rem' }}>
+      <section style={{ paddingBlock: '6rem', background: 'var(--ink-90)', borderTop: '1px solid var(--gold-line)' }}>
         <div className="container-editorial" style={{ maxWidth: '800px' }}>
           <SectionLabel>Questions fréquentes</SectionLabel>
           <h2 className="text-display-md" style={{ marginBottom: '3rem' }}>

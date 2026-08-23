@@ -42,6 +42,16 @@ try:
                 date_expiration TIMESTAMP WITH TIME ZONE NOT NULL
             );
         """))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id UUID PRIMARY KEY,
+                utilisateur_id UUID NOT NULL REFERENCES utilisateur(id) ON DELETE CASCADE,
+                token_hash VARCHAR(255) NOT NULL,
+                date_creation TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                date_expiration TIMESTAMP WITH TIME ZONE NOT NULL,
+                utilise BOOLEAN NOT NULL DEFAULT FALSE
+            );
+        """))
         conn.execute(text("ALTER TABLE sinistre ADD COLUMN IF NOT EXISTS motif_rejet TEXT;"))
         conn.execute(text("ALTER TABLE sinistre ADD COLUMN IF NOT EXISTS commentaire_validation TEXT;"))
 

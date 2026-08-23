@@ -275,6 +275,28 @@ export const AuthPage = ({ type, navigate, user, setUser }) => {
                   )}
                 </div>
                 <Field label="Mot de passe" name="password" type="password" placeholder="••••••••" required />
+                {isLogin && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-0.5rem', marginBottom: '0.25rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/forgot-password')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--gold)',
+                        fontSize: '0.8125rem',
+                        cursor: 'pointer',
+                        padding: 0,
+                        textDecoration: 'none',
+                        fontWeight: 400,
+                      }}
+                      onMouseOver={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                      onMouseOut={(e) => (e.currentTarget.style.textDecoration = 'none')}
+                    >
+                      Mot de passe oublié ?
+                    </button>
+                  </div>
+                )}
                 <Btn type="submit" variant="primary" loading={loading} style={{ width: '100%', marginTop: '0.5rem' }}>
                   {isLogin ? 'Se connecter' : 'S\'inscrire'}
                 </Btn>

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, Field
 
 class UserCreate(BaseModel):
     """Ce que le client envoie pour s'inscrire."""
@@ -123,3 +123,22 @@ class OnboardingOut(BaseModel):
     couverture_existante: list[str] | None
     priorite_assurance: str | None
     onboarding_complete: bool = True
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+    message: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(..., min_length=4)
+    nouveau_mot_de_passe: str = Field(..., min_length=6)
+    email: EmailStr | None = None
+
+
+class ResetPasswordResponse(BaseModel):
+    message: str
+

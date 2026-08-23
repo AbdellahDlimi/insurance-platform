@@ -25,6 +25,10 @@ from app.modules.users_kyc.schemas import (
     OnboardingOut,
     KYCReviewSubmit,
     KYCDetailOut,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
 )
 from app.modules.notifications.dependencies import get_notification_service
 from app.modules.notifications.service import NotificationService
@@ -84,6 +88,42 @@ def resend_code(
     Génère et renvoie un nouveau code OTP à 6 chiffres.
     """
     return service.resend_verification_code(db, data.email, notification_service, background_tasks)
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse, summary="Demande de réinitialisation de mot de passe")
+def forgot_password(
+    data: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_session),
+    notification_service: NotificationService = Depends(get_notification_service),
+):
+    """
+    Envoie un email avec un lien de réinitialisation sécurisé si l'adresse existe.
+    Réponse générique sécurisée contre l'énumération de comptes.
+    """
+    return service.request_password_reset(
+        db=db,
+        email=data.email,
+        notification_service=notification_service,
+        background_tasks=background_tasks,
+    )
+
+
+@router.post("/reset-password", response_model=ResetPasswordResponse, summary="Appliquer le nouveau mot de passe avec le token")
+def reset_password(
+    data: ResetPasswordRequest,
+    db: Session = Depends(get_session),
+):
+    """
+    Valide le token de réinitialisation et applique le nouveau mot de passe.
+    """
+    return service.reset_password_with_token(
+        db=db,
+        token=data.token,
+        nouveau_mot_de_passe=data.nouveau_mot_de_passe,
+        email=data.email,
+    )
+
 
 
 @router.post("/debug/test-email", summary="[DEBUG] Tester l'envoi d'un email réel")

@@ -80,3 +80,16 @@ class PendingRegistration(Base):
     code_verification_hash = Column(String(255), nullable=False)
     date_creation = Column(DateTime(timezone=True), default=datetime.utcnow)
     date_expiration = Column(DateTime(timezone=True), nullable=False)
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    utilisateur_id = Column(UUID(as_uuid=True), ForeignKey("utilisateur.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash = Column(String(255), nullable=False, index=True)
+    date_creation = Column(DateTime(timezone=True), default=datetime.utcnow)
+    date_expiration = Column(DateTime(timezone=True), nullable=False)
+    utilise = Column(Boolean, default=False, nullable=False)
+
+    utilisateur = relationship("Utilisateur")

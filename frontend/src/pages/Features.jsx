@@ -78,7 +78,7 @@ export const FeaturesPage = ({ navigate }) => {
     securite: {
       headline: 'Votre identité, inviolable.',
       sub: 'TrustPool utilise un chiffrement à deux niveaux — vos données personnelles ne sont jamais exposées, même à nos équipes.',
-      img: '/Explainer_video_about_KYC_secu.mp4',
+      img: '/video2_kyc_security.mp4',
       points: [
         { icon: Lock,       title: 'Chiffrement enveloppe KMS',        desc: 'Vos données KYC réelles (nom, date de naissance, pièce d\'identité) sont chiffrées via AWS KMS. Seule une clé maître, protégée par HSM, peut les déchiffrer dans un contexte légal strict.' },
         { icon: Shield,     title: 'Pseudonyme permanent',              desc: 'Un pseudonyme généré cryptographiquement vous est attribué à l\'inscription. Toutes vos interactions sur la plateforme utilisent ce pseudonyme — y compris pour les autres membres de votre groupe.' },
@@ -89,7 +89,7 @@ export const FeaturesPage = ({ navigate }) => {
     ia: {
       headline: 'L\'IA au service de la communauté.',
       sub: 'Trois modèles d\'IA spécialisés travaillent en coulisse pour protéger votre groupe, optimiser vos cotisations et vous guider.',
-      img: '/Product_demo_animation_showing.mp4',
+      img: '/video6_fraude_ia.mp4',
       points: [
         { icon: Brain,      title: 'Matchmaker — Recommandations de Groupes', desc: 'Un modèle de filtrage collaboratif analyse votre profil (âge, situation pro, intérêts, budget) et calcule un score de compatibilité avec chaque groupe disponible. Vous voyez directement les groupes les plus pertinents.' },
         { icon: Search,     title: 'Chien de Garde — Détection de Fraude',    desc: 'Notre modèle Isolation Forest analyse en temps réel chaque déclaration de sinistre. Il détecte les anomalies de montant, de fréquence et de comportement réseau. Toute anomalie génère une alerte immédiate.' },
@@ -100,7 +100,7 @@ export const FeaturesPage = ({ navigate }) => {
     transparence: {
       headline: 'Chaque euro est traçable.',
       sub: 'La cagnotte, le Buffer Pool, les sinistres — tout est visible, en temps réel, par chaque membre du groupe.',
-      img: '/Financial_dashboard_animation.mp4',
+      img: '/video4_cagnotte_dashboard.mp4',
       points: [
         { icon: BarChart2,   title: 'Dashboard Financier en Temps Réel',  desc: 'Visualisez à tout moment la cagnotte principale, le Buffer Pool de sécurité (15 % des cotisations), les entrées et sorties du mois. Aucun euro ne disparaît sans trace.' },
         { icon: FileText,    title: 'Historique Complet et Auditable',    desc: 'Chaque cotisation, chaque sinistre approuvé, chaque indemnisation versée est enregistrée dans un journal horodaté. L\'Admin et les membres peuvent consulter l\'historique complet du groupe.' },
@@ -111,7 +111,7 @@ export const FeaturesPage = ({ navigate }) => {
     gouvernance: {
       headline: 'La communauté décide.',
       sub: 'TrustPool met le contrôle entre les mains de l\'Admin du groupe et de la communauté. Chaque décision importante requiert une validation humaine.',
-      img: '/illustration.png',
+      img: '/video7_gouvernance.mp4',
       points: [
         { icon: Shield,     title: 'Admin du Groupe',                   desc: 'Chaque groupe est dirigé par un Admin élu ou désigné. L\'Admin fixe les règles, valide les adhésions, approuve les sinistres et peut proposer des modifications aux règles du groupe.' },
         { icon: CheckCircle2, title: 'Human-in-the-Loop Obligatoire',   desc: 'Aucune indemnisation ne peut être déclenchée sans validation humaine explicite de l\'Admin. L\'IA assiste et recommande, mais c\'est l\'humain qui décide.' },
@@ -260,11 +260,37 @@ export const FeaturesPage = ({ navigate }) => {
       <section style={{ paddingBlock: '6rem', background: 'var(--ink-90)', borderTop: '1px solid var(--gold-line)' }}>
         <div className="container-editorial">
           <SectionLabel>Comparaison</SectionLabel>
-          <h2 className="text-display-md" style={{ marginBottom: '3rem' }}>
+          <h2 className="text-display-md" style={{ marginBottom: '2rem' }}>
             TrustPool vs <DisplayItalic>assurance traditionnelle</DisplayItalic>
           </h2>
 
-          <div style={{ border: '1px solid var(--gold-line)', overflow: 'hidden' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(280px, 420px) 1fr',
+            gap: '2rem',
+            alignItems: 'start',
+            marginBottom: '2rem',
+          }} className="features-comparison-grid">
+            <div style={{
+              position: 'relative',
+              borderRadius: '2px',
+              border: '1px solid var(--gold-line)',
+              overflow: 'hidden',
+              background: 'var(--ink-80)',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+            }}>
+              <video
+                src="/video8_comparaison.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                controls
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            </div>
+
+            <div style={{ border: '1px solid var(--gold-line)', overflow: 'hidden' }}>
             {/* Header */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', background: 'var(--ink-80)', borderBottom: '1px solid var(--gold-line)' }}>
               <div style={{ padding: '1rem 1.25rem' }}><span className="text-label">Critère</span></div>
@@ -283,6 +309,7 @@ export const FeaturesPage = ({ navigate }) => {
             ].map((row, i) => (
               <CompareRow key={i} {...row} />
             ))}
+          </div>
           </div>
         </div>
       </section>
@@ -306,6 +333,7 @@ export const FeaturesPage = ({ navigate }) => {
       <style>{`
         @media (max-width: 768px) {
           .tab-content-grid { grid-template-columns: 1fr !important; }
+          .features-comparison-grid { grid-template-columns: 1fr !important; }
           .stat-block:last-child { border-right: none !important; }
         }
       `}</style>

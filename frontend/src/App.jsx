@@ -8,6 +8,8 @@ import { Btn } from './ui.jsx';
 import { Navbar, Footer } from './layout.jsx';
 import { LandingPage }       from './pages/Landing.jsx';
 import { AuthPage }          from './pages/Auth.jsx';
+import { ForgotPasswordPage } from './pages/ForgotPassword.jsx';
+import { ResetPasswordPage }  from './pages/ResetPassword.jsx';
 import { DashboardPage }     from './pages/Dashboard.jsx';
 import { KYCPage }           from './pages/KYC.jsx';
 import { GroupsExplorer }    from './pages/Groups.jsx';
@@ -149,30 +151,32 @@ export default function App() {
       case '/':
         if (user) return user.onboarding_complete ? <DashboardPage user={user} navigate={navigate} /> : <OnboardingPage navigate={navigate} user={user} setUser={setUser} />;
         return <LandingPage navigate={navigate} />;
-      case '/login':         return <AuthPage type="login"     navigate={navigate} user={user} setUser={setUser} />;
-      case '/register':      return <AuthPage type="register"  navigate={navigate} user={user} setUser={setUser} />;
-      case '/onboarding':    return <OnboardingPage navigate={navigate} user={user} setUser={setUser} />;
-      case '/dashboard':     return <DashboardPage  user={user} navigate={navigate} />;
-      case '/kyc':           return <KYCPage navigate={navigate} />;
+      case '/login':           return <AuthPage type="login"     navigate={navigate} user={user} setUser={setUser} />;
+      case '/register':        return <AuthPage type="register"  navigate={navigate} user={user} setUser={setUser} />;
+      case '/forgot-password': return <ForgotPasswordPage navigate={navigate} />;
+      case '/reset-password':  return <ResetPasswordPage navigate={navigate} />;
+      case '/onboarding':      return <OnboardingPage navigate={navigate} user={user} setUser={setUser} />;
+      case '/dashboard':       return <DashboardPage  user={user} navigate={navigate} />;
+      case '/kyc':             return <KYCPage navigate={navigate} />;
       case '/admin/dashboard': return <AdminDashboard navigate={navigate} user={user} />;
-      case '/admin/kyc':     return <KYCAdmin navigate={navigate} user={user} />;
-      case '/groups':        return <GroupsExplorer navigate={navigate} />;
-      case '/claims':        return <ClaimsPage navigate={navigate} />;
-      case '/claims/new':    return <DeclareClaimPage navigate={navigate} />;
-      case '/profile':       return <ProfilePage user={user} navigate={navigate} setUser={setUser} />;
-      case '/how-it-works':  return <HowItWorksPage navigate={navigate} />;
-      case '/features':      return <FeaturesPage navigate={navigate} />;
+      case '/admin/kyc':       return <KYCAdmin navigate={navigate} user={user} />;
+      case '/groups':          return <GroupsExplorer navigate={navigate} />;
+      case '/claims':          return <ClaimsPage navigate={navigate} />;
+      case '/claims/new':      return <DeclareClaimPage navigate={navigate} />;
+      case '/profile':         return <ProfilePage user={user} navigate={navigate} setUser={setUser} />;
+      case '/how-it-works':    return <HowItWorksPage navigate={navigate} />;
+      case '/features':        return <FeaturesPage navigate={navigate} />;
       case '/payment/success': return <PaymentSuccess navigate={navigate} />;
       case '/payment/cancel':  return <PaymentCancel navigate={navigate} />;
       case '/stripe-checkout': return <StripeCheckout navigate={navigate} />;
       case '/notifications':
       case '/cotisations':
-      case '/audit':         return <ComingSoon navigate={navigate} />;
-      default:               return <NotFound navigate={navigate} />;
+      case '/audit':           return <ComingSoon navigate={navigate} />;
+      default:                 return <NotFound navigate={navigate} />;
     }
   };
 
-  const hideFooter = ['/login', '/register'].includes(currentPath);
+  const hideFooter = ['/login', '/register', '/forgot-password', '/reset-password'].includes(currentPath);
 
   return (
     <>
