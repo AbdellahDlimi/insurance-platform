@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield, ArrowLeft, Users, CheckCircle2, XCircle, Clock,
-  Wallet, TrendingUp, Star, UserPlus, Crown, AlertCircle, Check, X, AlertTriangle
+  Wallet, TrendingUp, Star, UserPlus, UserMinus, Crown, AlertCircle, Check, X, AlertTriangle
 } from 'lucide-react';
 import { api, formatRejectionMotif, STANDARD_REJECTION_REASONS } from '../api.js';
 import {
@@ -99,7 +99,7 @@ const MemberRow = ({ member, index, onClick }) => {
 };
 
 /* ── Member Profile Modal ── */
-const MemberProfileModal = ({ member, onClose }) => {
+const MemberProfileModal = ({ member, onClose, isAdmin, onExclude }) => {
   if (!member) return null;
   return (
     <motion.div
@@ -191,6 +191,27 @@ const MemberProfileModal = ({ member, onClose }) => {
               </div>
             </div>
           </div>
+
+          {/* Bouton Exclure (admin only, non-admin members) */}
+          {isAdmin && !member.is_admin && (
+            <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(240,237,230,0.06)' }}>
+              <button
+                onClick={() => onExclude(member)}
+                style={{
+                  width: '100%', padding: '0.75rem 1rem',
+                  background: 'rgba(180,60,60,0.1)', border: '1px solid rgba(180,60,60,0.3)',
+                  color: 'var(--danger)', borderRadius: 4, cursor: 'pointer',
+                  fontSize: '0.875rem', fontWeight: 600,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(180,60,60,0.2)'; e.currentTarget.style.borderColor = 'var(--danger)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(180,60,60,0.1)'; e.currentTarget.style.borderColor = 'rgba(180,60,60,0.3)'; }}
+              >
+                <UserMinus size={15} /> Exclure ce membre du groupe
+              </button>
+            </div>
+          )}
           
         </div>
       </motion.div>
@@ -216,6 +237,8 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
   const [appelLoading, setAppelLoading] = useState(false);
   const [montantAppel, setMontantAppel] = useState(50);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [excludeConfirm, setExcludeConfirm] = useState(null); // member to exclude
+  const [excludeLoading, setExcludeLoading] = useState(false);
   const [selectedClaimAction, setSelectedClaimAction] = useState(null); // { claim, action: 'validate'|'reject', amount: '', motif: '' }
   const [processingClaim, setProcessingClaim] = useState(false);
   const [previewClaimDoc, setPreviewClaimDoc] = useState(null);
@@ -388,6 +411,24 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
     }
   };
 
+  const handleExcludeMember = async () => {
+    if (!excludeConfirm) return;
+    setExcludeLoading(true);
+    try {
+      await api.excludeMember(groupId, excludeConfirm.utilisateur_id);
+      showToast(`${excludeConfirm.pseudonyme} a été exclu(e) du groupe.`);
+      setExcludeConfirm(null);
+      setSelectedMember(null);
+      // Reload members list
+      const updated = await api.getGroupMembersEnriched(groupId).catch(() => members);
+      setMembers(updated);
+    } catch (err) {
+      showToast(err.response?.data?.detail || 'Erreur lors de l\'exclusion.', 'error');
+    } finally {
+      setExcludeLoading(false);
+    }
+  };
+
   if (loading) return <PageLoader label="Chargement du groupe…" />;
   if (!group)  return (
     <div style={{ color: 'var(--paper)', textAlign: 'center', marginTop: '10rem' }}>
@@ -403,7 +444,83 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
     <motion.div {...pageVariants} style={{ paddingTop: '6rem', paddingBottom: '5rem' }}>
       
       <AnimatePresence>
-        {selectedMember && <MemberProfileModal member={selectedMember} onClose={() => setSelectedMember(null)} />}
+        {selectedMember && <MemberProfileModal member={selectedMember} onClose={() => setSelectedMember(null)} isAdmin={isAdmin} onExclude={(m) => { setSelectedMember(null); setExcludeConfirm(m); }} />}
+      </AnimatePresence>
+
+      {/* Exclude confirmation modal */}
+      <AnimatePresence>
+        {excludeConfirm && (
+          <motion.div
+            key="exclude-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => !excludeLoading && setExcludeConfirm(null)}
+            style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(12,12,12,0.88)', backdropFilter: 'blur(8px)',
+              zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '1rem',
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: 'var(--ink)', border: '1px solid rgba(180,60,60,0.3)',
+                borderRadius: '8px', width: '100%', maxWidth: '420px',
+                padding: '2rem', textAlign: 'center',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+              }}
+            >
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%', margin: '0 auto 1.25rem',
+                background: 'rgba(180,60,60,0.12)', border: '1px solid rgba(180,60,60,0.25)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <UserMinus size={24} color="var(--danger)" />
+              </div>
+
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 600, color: 'var(--paper)', marginBottom: '0.5rem' }}>
+                Exclure {excludeConfirm.pseudonyme} ?
+              </h3>
+              <p style={{ color: 'var(--paper-dim)', fontSize: '0.875rem', lineHeight: 1.6, marginBottom: '1.75rem' }}>
+                Cette action retirera <strong style={{ color: 'var(--paper)' }}>{excludeConfirm.pseudonyme}</strong> du groupe.
+                Le membre ne pourra plus participer aux cotisations ni aux sinistres.
+              </p>
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+                <button
+                  onClick={() => setExcludeConfirm(null)}
+                  disabled={excludeLoading}
+                  style={{
+                    padding: '0.625rem 1.5rem', background: 'transparent',
+                    border: '1px solid var(--gold-line)', color: 'var(--paper-dim)',
+                    borderRadius: 4, cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500,
+                  }}
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleExcludeMember}
+                  disabled={excludeLoading}
+                  style={{
+                    padding: '0.625rem 1.5rem',
+                    background: excludeLoading ? 'rgba(180,60,60,0.3)' : 'rgba(180,60,60,0.85)',
+                    border: '1px solid var(--danger)', color: '#fff',
+                    borderRadius: 4, cursor: excludeLoading ? 'not-allowed' : 'pointer',
+                    fontSize: '0.875rem', fontWeight: 600,
+                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  }}
+                >
+                  {excludeLoading ? 'Exclusion…' : <><UserMinus size={14} /> Confirmer l'exclusion</>}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* Toast */}

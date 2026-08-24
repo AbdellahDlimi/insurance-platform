@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 import { api } from '../api.js';
-import { pageVariants, Btn, Field, AlertBanner, DisplayItalic } from '../ui.jsx';
+import { pageVariants, Btn, Field, AlertBanner } from '../ui.jsx';
 
 export const AuthPage = ({ type, navigate, user, setUser }) => {
   const [loading, setLoading] = useState(false);
@@ -57,14 +57,13 @@ export const AuthPage = ({ type, navigate, user, setUser }) => {
         setAuthStep('otp');
       }
     } catch (err) {
-
       const detail = err.response?.data?.detail;
       if (err.response?.status === 403 && typeof detail === 'string' && (detail.toLowerCase().includes('activ') || detail.toLowerCase().includes('code') || detail.toLowerCase().includes('confirm'))) {
         setRegisteredEmail(email);
         setAuthStep('otp');
         setError(detail);
       } else if (err.response?.status === 422 || (typeof detail === 'string' && (detail.toLowerCase().includes('email') || detail.toLowerCase().includes('adresse')))) {
-        setEmailError(detail || "Cette adresse email semble invalide. Vérifiez qu'elle est correctement orthographiée.");
+        setEmailError(detail || "Cette adresse email me semble invalide. Vérifiez qu'elle est correctement orthographiée.");
       } else {
         setError(detail || 'Une erreur est survenue');
       }
@@ -112,89 +111,82 @@ export const AuthPage = ({ type, navigate, user, setUser }) => {
   };
 
   return (
-    <motion.div {...pageVariants} className="auth-page-container" style={{ minHeight: '100vh', display: 'flex' }}>
-      {/* ── Left form panel ── */}
-      <div className="auth-panel-left" style={{ width: '100%', maxWidth: '520px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(2rem, 5vw, 4rem)', paddingTop: '7rem' }}>
-        <div style={{ width: '100%' }}>
-          <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', marginBottom: '2.5rem', display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-            <img src="/icone.png" alt="TrustPool" style={{ height: '2rem', width: 'auto', objectFit: 'contain' }}
+    <motion.div {...pageVariants} className="flex w-full min-h-screen bg-[#0C0C0C] overflow-x-hidden">
+
+      {/* ══════════════════════════════════════════════
+          ZONE GAUCHE — Formulaire (Largeur fixe ajustée desktop 450px)
+          ══════════════════════════════════════════════ */}
+      <div className="w-full lg:w-[460px] xl:w-[480px] lg:flex-none flex flex-col justify-center px-8 sm:px-12 lg:pl-16 lg:pr-8 py-12 pt-28 lg:pt-12 relative z-10 bg-[#0C0C0C] min-h-screen">
+        <div className="w-full">
+
+          {/* Logo */}
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2.5 mb-10 bg-transparent border-0 cursor-pointer p-0 text-left"
+          >
+            <img
+              src="/icone.png"
+              alt="TrustPool"
+              className="h-8 w-auto object-contain"
               onError={e => { e.target.style.display = 'none'; }}
             />
-            <span style={{ fontFamily: 'var(--font-display)', color: 'var(--paper-dim)', fontSize: '0.875rem' }}>TrustPool</span>
+            <span className="font-['DM_Serif_Display',serif] text-[#F0EDE6] text-lg font-semibold tracking-wide">
+              TrustPool
+            </span>
           </button>
 
           {authStep === 'otp' ? (
             /* ── OTP Verification Screen ── */
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-              <p className="text-label" style={{ marginBottom: '0.75rem', color: 'var(--gold)' }}>Vérification de sécurité</p>
-              <h1 className="text-display-sm" style={{ marginBottom: '0.5rem' }}>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+              <p className="text-[11px] font-medium tracking-[0.14em] uppercase text-[#C8A96E] mb-2 text-left">
+                VÉRIFICATION DE SÉCURITÉ
+              </p>
+              <h1 className="font-['DM_Serif_Display',serif] text-2xl sm:text-3xl font-normal text-[#F0EDE6] mb-2 leading-tight text-left">
                 Code de confirmation
               </h1>
-              <p style={{ color: 'var(--paper-dim)', fontSize: '0.9375rem', fontWeight: 300, marginBottom: '2rem', lineHeight: 1.5 }}>
-                Un code d'activation à 6 chiffres a été envoyé à <strong style={{ color: 'var(--paper)', fontWeight: 500 }}>{registeredEmail}</strong>.
+              <p className="text-[#F0EDE6]/65 text-sm font-light mb-6 leading-relaxed text-left">
+                Un code d'activation à 6 chiffres a été envoyé à <strong className="text-[#F0EDE6] font-medium">{registeredEmail}</strong>.
               </p>
 
-              {error && <div style={{ marginBottom: '1.25rem' }}><AlertBanner type="error">{error}</AlertBanner></div>}
+              {error && <div className="mb-5"><AlertBanner type="error">{error}</AlertBanner></div>}
               {resendStatus && (
-                <div style={{
-                  marginBottom: '1.25rem',
-                  padding: '0.75rem 1rem',
-                  background: 'rgba(90, 158, 124, 0.1)',
-                  border: '1px solid rgba(90, 158, 124, 0.3)',
-                  color: 'var(--success)',
-                  fontSize: '0.8125rem',
-                  borderRadius: '3px'
-                }}>
+                <div className="mb-5 p-3 bg-[rgba(90,158,124,0.15)] border border-[rgba(90,158,124,0.35)] text-[#5A9E7C] text-xs rounded">
                   {resendStatus}
                 </div>
               )}
 
-              <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <form onSubmit={handleVerifyOtp} className="flex flex-col gap-5">
                 <div>
-                  <label className="input-label" style={{ display: 'block', marginBottom: '0.5rem' }}>
+                  <label className="block text-[11px] font-medium tracking-wider uppercase text-[#C8A96E] mb-2 text-left">
                     Code à 6 chiffres
                   </label>
                   <input
-
                     type="text"
                     maxLength={6}
                     placeholder="123456"
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                     autoFocus
-                    style={{
-                      width: '100%',
-                      textAlign: 'center',
-                      fontSize: '1.75rem',
-                      letterSpacing: '0.5rem',
-                      fontWeight: 700,
-                      padding: '0.85rem',
-                      background: 'rgba(20, 20, 20, 0.8)',
-                      border: '1px solid var(--gold-line)',
-                      color: 'var(--gold)',
-                      borderRadius: '4px',
-                      fontFamily: 'monospace',
-                      outline: 'none',
-                    }}
+                    className="w-full text-center text-2xl tracking-[0.5rem] font-bold p-3 bg-[#141414] border border-[rgba(240,237,230,0.1)] text-[#C8A96E] rounded font-mono outline-none focus:border-[#C8A96E]/50 transition-colors"
                   />
                 </div>
 
-                <Btn type="submit" variant="primary" loading={loading} style={{ width: '100%' }}>
+                <Btn type="submit" variant="primary" loading={loading} className="w-full">
                   Valider et accéder à l'application →
                 </Btn>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.8125rem' }}>
+                <div className="flex items-center justify-between mt-2 text-xs">
                   <button
                     type="button"
                     onClick={() => { setAuthStep('form'); setError(''); }}
-                    style={{ background: 'none', border: 'none', color: 'var(--paper-dim)', cursor: 'pointer', padding: 0 }}
+                    className="bg-transparent border-0 text-[#F0EDE6]/60 cursor-pointer p-0 hover:text-[#F0EDE6]"
                   >
                     ← Modifier l'email
                   </button>
                   <button
                     type="button"
                     onClick={handleResendOtp}
-                    style={{ background: 'none', border: 'none', color: 'var(--gold)', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                    className="bg-transparent border-0 text-[#C8A96E] cursor-pointer p-0 underline"
                   >
                     Renvoyer le code
                   </button>
@@ -203,39 +195,32 @@ export const AuthPage = ({ type, navigate, user, setUser }) => {
             </motion.div>
           ) : (
             /* ── Login / Register Form ── */
-            <>
-              <p className="text-label" style={{ marginBottom: '0.75rem' }}>{isLogin ? 'Connexion' : 'Inscription'}</p>
-              <h1 className="text-display-sm" style={{ marginBottom: '0.5rem' }}>
-                {isLogin ? 'Bon retour,' : 'Créer un compte,'}
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+
+              {/* Section label */}
+              <p className="text-[11px] font-medium tracking-[0.14em] uppercase text-[#C8A96E] mb-2 text-left">
+                {isLogin ? 'CONNEXION' : 'INSCRIPTION'}
+              </p>
+
+              {/* Headline */}
+              <h1 className="font-['DM_Serif_Display',serif] text-3xl sm:text-4xl font-normal text-[#F0EDE6] mb-1.5 leading-tight text-left">
+                <em className="italic text-[#C8A96E]">
+                  {isLogin ? 'Bon retour,' : 'Créer un compte,'}
+                </em>
               </h1>
-              <p style={{ color: 'var(--paper-dim)', fontSize: '0.9375rem', fontWeight: 300, marginBottom: '2.5rem' }}>
+
+              {/* Subheadline */}
+              <p className="text-[#F0EDE6]/65 text-sm font-light mb-8 leading-relaxed text-left">
                 {isLogin ? 'Connectez-vous pour accéder à vos groupes.' : 'Rejoignez la révolution de l\'assurance P2P.'}
               </p>
 
-              {error && <div style={{ marginBottom: '1.25rem' }}><AlertBanner type="error">{error}</AlertBanner></div>}
+              {error && <div className="mb-5"><AlertBanner type="error">{error}</AlertBanner></div>}
 
-              <div style={{ marginBottom: '1.5rem' }}>
+              {/* Google Sign-In */}
+              <div className="mb-5">
                 <button
-                  onClick={(e) => { e.preventDefault(); alert("Pour activer Google Sign-In, vous devez configurer un Client ID dans Google Cloud Console et installer @react-oauth/google."); }}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.75rem',
-                    background: '#ffffff',
-                    color: '#3c4043',
-                    border: '1px solid #dadce0',
-                    borderRadius: '4px',
-                    padding: '0.75rem',
-                    fontSize: '0.9375rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    transition: 'background-color 0.2s',
-                  }}
-                  onMouseOver={e => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-                  onMouseOut={e => e.currentTarget.style.backgroundColor = '#ffffff'}
+                  onClick={(e) => { e.preventDefault(); alert("Pour activer Google Sign-In, vous devez configurer un Client ID dans Google Cloud Console."); }}
+                  className="w-full flex items-center justify-center gap-3 bg-white text-[#3c4043] border border-[#dadce0] rounded py-3 text-sm font-medium cursor-pointer transition-colors hover:bg-[#f8f9fa]"
                 >
                   <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
                     <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
@@ -248,189 +233,96 @@ export const AuthPage = ({ type, navigate, user, setUser }) => {
                 </button>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ flex: 1, height: '1px', background: 'var(--ink-90)', borderBottom: '1px solid var(--gold-line)' }}></div>
-                <span style={{ color: 'var(--paper-dim)', fontSize: '0.8125rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ou avec email</span>
-                <div style={{ flex: 1, height: '1px', background: 'var(--ink-90)', borderBottom: '1px solid var(--gold-line)' }}></div>
+              {/* Separator */}
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex-1 h-px bg-[#C8A96E]/20"></div>
+                <span className="text-[#F0EDE6]/35 text-[11px] uppercase tracking-wider font-medium">ou avec email</span>
+                <div className="flex-1 h-px bg-[#C8A96E]/20"></div>
               </div>
 
-              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 {!isLogin && (
                   <Field label="Pseudonyme" name="pseudonyme" type="text" placeholder="Gamer123" required />
                 )}
                 <div>
                   <Field label="Email" name="email" type="email" placeholder="votre@email.com" required />
                   {emailError && (
-                    <p style={{
-                      marginTop: '0.4rem',
-                      fontSize: '0.78125rem',
-                      color: '#EF4444',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      lineHeight: 1.4,
-                    }}>
+                    <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1.5 leading-snug">
                       <span>⚠️</span> {emailError}
                     </p>
                   )}
                 </div>
-                <Field label="Mot de passe" name="password" type="password" placeholder="••••••••" required />
-                {isLogin && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-0.5rem', marginBottom: '0.25rem' }}>
-                    <button
-                      type="button"
-                      onClick={() => navigate('/forgot-password')}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--gold)',
-                        fontSize: '0.8125rem',
-                        cursor: 'pointer',
-                        padding: 0,
-                        textDecoration: 'none',
-                        fontWeight: 400,
-                      }}
-                      onMouseOver={(e) => (e.currentTarget.style.textDecoration = 'underline')}
-                      onMouseOut={(e) => (e.currentTarget.style.textDecoration = 'none')}
-                    >
-                      Mot de passe oublié ?
-                    </button>
-                  </div>
-                )}
-                <Btn type="submit" variant="primary" loading={loading} style={{ width: '100%', marginTop: '0.5rem' }}>
+                <div>
+                  <Field label="Mot de passe" name="password" type="password" placeholder="••••••••" required />
+                  {isLogin && (
+                    <div className="flex justify-end mt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => navigate('/forgot-password')}
+                        className="bg-transparent border-0 text-[#C8A96E] text-xs cursor-pointer p-0 hover:underline"
+                      >
+                        Mot de passe oublié ?
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <Btn type="submit" variant="primary" loading={loading} className="w-full mt-2">
                   {isLogin ? 'Se connecter' : 'S\'inscrire'}
                 </Btn>
               </form>
 
-              <p style={{ marginTop: '2rem', fontSize: '0.875rem', color: 'var(--paper-dim)' }}>
-                {isLogin ? "Pas encore de compte ?" : "Déjà membre ?"}
-                {' '}
+              {/* Switch login/register */}
+              <p className="mt-8 text-xs text-[#F0EDE6]/60 text-left">
+                {isLogin ? "Pas encore de compte ?" : "Déjà membre ?"}{' '}
                 <button
                   onClick={() => navigate(isLogin ? '/register' : '/login')}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gold)', textDecoration: 'underline', fontSize: 'inherit' }}
+                  className="bg-transparent border-0 cursor-pointer text-[#C8A96E] underline text-xs p-0"
                 >
                   {isLogin ? "S'inscrire" : "Se connecter"}
                 </button>
               </p>
-            </>
+            </motion.div>
           )}
         </div>
       </div>
 
-      {/* ── Right decorative panel ── */}
-
-      <div style={{
-        position: 'relative', overflow: 'hidden',
-        background: 'var(--ink-90)',
-      }} className="auth-panel-right">
-        {/* KMS Security Presentation Video */}
+      {/* ══════════════════════════════════════════════
+          ZONE DROITE — Vidéo (Remplit tout l'espace restant sans vide)
+          ══════════════════════════════════════════════ */}
+      <div className="hidden lg:block flex-1 relative overflow-hidden min-h-screen">
+        {/* Video */}
         <video
           autoPlay
           muted
           loop
           playsInline
-          preload="metadata"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: 0,
-          }}
-          aria-label="Présentation de la sécurité KMS TrustPool"
+          poster="/hero_background.png"
+          className="absolute inset-0 w-full h-full object-cover object-left"
+          aria-label="Arrière-plan vidéo TrustPool"
         >
-          <source src="/TITRE_TrustPool_—_Connexion.mp4" type="video/mp4" />
-          Votre navigateur ne prend pas en charge la lecture de cette vidéo.
+          <source src="/TITRE_TrustPool_—_Vidéo_Land.mp4" type="video/mp4" />
+          <source src="/video_land.mp4" type="video/mp4" />
+          <source src="/login-hero.mp4" type="video/mp4" />
         </video>
 
-        {/* Dark / translucent overlay */}
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'rgba(12, 12, 12, 0.4)',
-          zIndex: 1,
-        }} />
+        {/* Soft edge gradient overlay to softly blend the join */}
+        <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-[#0C0C0C] via-[#0C0C0C]/30 to-transparent pointer-events-none z-10" />
 
-        {/* Content card */}
-        <div className="auth-content-card" style={{
-          position: 'absolute',
-          background: 'rgba(12,12,12,0.85)', border: '1px solid var(--gold-line)',
-          backdropFilter: 'blur(20px)',
-        }}>
-          <p className="text-label" style={{ marginBottom: '0.75rem' }}>Sécurité garantie</p>
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.125rem', fontWeight: 400, color: 'var(--paper)', lineHeight: 1.5 }}>
-            Vos données sont chiffrées via <DisplayItalic>KMS</DisplayItalic>. Vous naviguez sous pseudonyme. L'anonymat n'est levé que lors d'un audit légal strict.
+        {/* Bottom gradient overlay for tagline readability */}
+        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#0C0C0C] via-[#0C0C0C]/60 to-transparent pointer-events-none z-10" />
+
+        {/* Tagline */}
+        <div className="absolute bottom-0 left-0 right-0 p-12 lg:p-16 z-20">
+          <p className="font-['DM_Serif_Display',serif] italic text-xl xl:text-2xl text-[#F0EDE6]/80 font-normal leading-relaxed max-w-lg">
+            "Chaque membre, anonyme pour les autres. <br />
+            <span className="text-[#C8A96E]">Chaque sinistre, vérifié par l'IA."</span>
           </p>
-          <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ display: 'flex' }}>
-              {[0, 1, 2].map(i => (
-                <div key={i} style={{
-                  width: '2.25rem', height: '2.25rem', borderRadius: '50%',
-                  border: '2px solid var(--ink-90)',
-                  background: `linear-gradient(135deg, hsl(${220 + i * 20},40%,35%), hsl(${40 - i * 5},60%,50%))`,
-                  marginLeft: i > 0 ? '-0.5rem' : 0,
-                }} />
-              ))}
-            </div>
-            <span style={{ fontSize: '0.8125rem', color: 'var(--paper-dim)' }}>+1 200 membres vérifiés</span>
-          </div>
+          <div className="mt-4 w-12 h-0.5 bg-[#C8A96E]/50" />
         </div>
       </div>
 
-      <style>{`
-        .auth-page-container {
-          display: flex;
-          flex-direction: column;
-          min-height: 100vh;
-        }
-        
-        .auth-panel-left {
-          margin: 0 auto;
-        }
-        
-        .auth-panel-right {
-          display: block;
-          position: relative;
-          overflow: hidden;
-          height: 320px;
-          width: 100%;
-          border-top: 1px solid var(--gold-line);
-        }
-        
-        .auth-content-card {
-          bottom: 1.5rem;
-          left: 1.5rem;
-          right: 1.5rem;
-          padding: 1.25rem;
-          z-index: 2;
-        }
-        
-        @media (min-width: 900px) {
-          .auth-page-container {
-            flex-direction: row;
-          }
-          
-          .auth-panel-left {
-            margin: 0;
-          }
-          
-          .auth-panel-right {
-            flex: 1;
-            height: auto;
-            border-top: none;
-            border-left: 1px solid var(--gold-line);
-          }
-          
-          .auth-content-card {
-            bottom: 3rem;
-            left: 3rem;
-            right: 3rem;
-            padding: 2rem;
-          }
-        }
-      `}</style>
     </motion.div>
   );
 };

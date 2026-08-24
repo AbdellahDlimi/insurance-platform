@@ -6,7 +6,7 @@ from fastapi import HTTPException, status
 from app.modules.groups import repository
 from app.modules.groups.models import Groupe, DemandeAdhesion, Adhesion
 from app.modules.groups.schemas import GroupCreate, PendingRequestOut, MemberOut
-from app.modules.groups.events import produce_adhesion_requested, produce_adhesion_validated
+from app.modules.groups.events import produce_adhesion_requested, produce_adhesion_validated, produce_member_excluded
 from app.modules.users_kyc.service import get_kyc_status
 from app.modules.users_kyc.models import Utilisateur
 from app.modules.cagnotte.models import Cagnotte, Cotisation
@@ -355,3 +355,53 @@ def get_admin_pending_requests(db: Session, admin_id: uuid.UUID) -> list[Pending
             date_demande=demande.date_demande,
         ))
     return result
+
+
+def exclude_member(
+    db: Session,
+    group_id: uuid.UUID,
+    user_id: uuid.UUID,
+    admin_id: uuid.UUID,
+) -> Adhesion:
+    """
+    Permet à l'admin du groupe d'exclure un membre.
+    L'admin ne peut pas s'exclure lui-même.
+    """
+    # 1. Vérifier si le groupe existe
+    group = repository.get_group_by_id(db, group_id)
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Le groupe spécifié n'existe pas",
+        )
+
+    # 2. Vérifier que l'utilisateur est bien l'admin du groupe
+    if group.admin_id != admin_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Seul l'administrateur du groupe peut exclure un membre",
+        )
+
+    # 3. Empêcher l'admin de s'exclure lui-même
+    if user_id == admin_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="L'administrateur ne peut pas s'exclure lui-même du groupe",
+        )
+
+    # 4. Exclure le membre
+    adhesion = repository.exclude_member(db, user_id, group_id)
+    if not adhesion:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Aucune adhésion active trouvée pour cet utilisateur dans ce groupe",
+        )
+
+    # 5. Publier l'événement Kafka
+    produce_member_excluded(
+        utilisateur_id=user_id,
+        groupe_id=group_id,
+        exclu_par_admin_id=admin_id,
+    )
+
+    return adhesion
