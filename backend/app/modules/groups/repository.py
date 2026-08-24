@@ -155,6 +155,20 @@ def get_all_pending_requests_for_admin(db: Session, admin_id: uuid.UUID) -> list
         .all()
     )
 
+def exclude_member(db: Session, user_id: uuid.UUID, group_id: uuid.UUID) -> Adhesion | None:
+    """Passe le statut d'une adhésion active à 'exclue'."""
+    adhesion = db.query(Adhesion).filter(
+        Adhesion.utilisateur_id == user_id,
+        Adhesion.groupe_id == group_id,
+        Adhesion.statut == "active",
+    ).first()
+    if adhesion:
+        adhesion.statut = "exclue"
+        db.commit()
+        db.refresh(adhesion)
+    return adhesion
+
+
 def get_adhesions_by_user(db: Session, user_id: uuid.UUID) -> list[Adhesion]:
     return db.query(Adhesion).filter(
         Adhesion.utilisateur_id == user_id,

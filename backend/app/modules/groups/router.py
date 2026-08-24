@@ -139,6 +139,24 @@ def validate_member(
     )
 
 
+@router.delete("/{id}/members/{user_id}", response_model=AdhesionOut)
+def exclude_member(
+    id: uuid.UUID,
+    user_id: uuid.UUID,
+    current_user: TokenPayload = Depends(require_role("admin_groupe")),
+    db: Session = Depends(get_session),
+):
+    """
+    Permet à l'admin du groupe d'exclure un membre.
+    """
+    return service.exclude_member(
+        db=db,
+        group_id=id,
+        user_id=user_id,
+        admin_id=uuid.UUID(current_user.user_id),
+    )
+
+
 @router.get("/{id}/members", response_model=list[AdhesionOut])
 def get_members(
     id: uuid.UUID,

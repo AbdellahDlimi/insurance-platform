@@ -125,6 +125,10 @@ export const api = {
     const res = await axiosClient.post(`/groups/${groupId}/members/${userId}/validate`, { statut: status });
     return res.data;
   },
+  excludeMember: async (groupId, userId) => {
+    const res = await axiosClient.delete(`/groups/${groupId}/members/${userId}`);
+    return res.data;
+  },
   getAdminPendingRequests: async () => {
     const res = await axiosClient.get('/groups/admin/pending-requests');
     return res.data;

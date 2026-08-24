@@ -43,3 +43,20 @@ def produce_adhesion_validated(
     }
     publish_event("adhesion.validated", payload)
     logger.info(f"Événement adhesion.validated publié pour l'utilisateur {utilisateur_id} (statut: {statut})")
+
+
+def produce_member_excluded(
+    utilisateur_id: uuid.UUID,
+    groupe_id: uuid.UUID,
+    exclu_par_admin_id: uuid.UUID,
+) -> None:
+    """
+    Publie l'événement membre.exclu lorsqu'un admin exclut un membre de son groupe.
+    """
+    payload = {
+        "utilisateur_id": str(utilisateur_id),
+        "groupe_id": str(groupe_id),
+        "exclu_par_admin_id": str(exclu_par_admin_id),
+    }
+    publish_event("membre.exclu", payload)
+    logger.info(f"Événement membre.exclu publié pour l'utilisateur {utilisateur_id}")
