@@ -10,14 +10,111 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 axiosClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
+    // 401 Unauthorized handling (token expiré ou invalide)
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      const refreshToken = localStorage.getItem('refresh_token');
+
+      if (
+        originalRequest.url?.includes('/users_kyc/refresh') ||
+        originalRequest.url?.includes('/users_kyc/login')
+      ) {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        return Promise.reject(error);
+      }
+
+      if (refreshToken) {
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          })
+            .then((token) => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              return axiosClient(originalRequest);
+            })
+            .catch((err) => Promise.reject(err));
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        try {
+          const res = await axios.post(`${API_BASE}/users_kyc/refresh`, {
+            refresh_token: refreshToken,
+          });
+          const { access_token, refresh_token: newRefreshToken } = res.data;
+          localStorage.setItem('access_token', access_token);
+          if (newRefreshToken) {
+            localStorage.setItem('refresh_token', newRefreshToken);
+          }
+
+          axiosClient.defaults.headers.common.Authorization = `Bearer ${access_token}`;
+          originalRequest.headers.Authorization = `Bearer ${access_token}`;
+
+          processQueue(null, access_token);
+          return axiosClient(originalRequest);
+        } catch (refreshErr) {
+          processQueue(refreshErr, null);
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          if (
+            typeof window !== 'undefined' &&
+            !['/login', '/register', '/forgot-password', '/reset-password', '/'].includes(
+              window.location.pathname
+            )
+          ) {
+            window.location.href = '/login';
+          }
+          return Promise.reject(refreshErr);
+        } finally {
+          isRefreshing = false;
+        }
+      } else {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        if (
+          typeof window !== 'undefined' &&
+          !['/login', '/register', '/forgot-password', '/reset-password', '/'].includes(
+            window.location.pathname
+          )
+        ) {
+          window.location.href = '/login';
+        }
+      }
+    }
+
     if (error.response?.status === 403) {
       const detail = error.response?.data?.detail;
-      if (typeof detail === 'string' && (detail.toLowerCase().includes('kyc') || detail.toLowerCase().includes('identité') || detail.toLowerCase().includes('identite'))) {
+      if (
+        typeof detail === 'string' &&
+        (detail.toLowerCase().includes('kyc') ||
+          detail.toLowerCase().includes('identité') ||
+          detail.toLowerCase().includes('identite'))
+      ) {
         if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/kyc')) {
-          sessionStorage.setItem('kyc_blocked_message', "Complétez votre vérification d'identité (KYC) pour continuer.");
+          sessionStorage.setItem(
+            'kyc_blocked_message',
+            "Complétez votre vérification d'identité (KYC) pour continuer."
+          );
           window.location.href = '/kyc';
         }
       }

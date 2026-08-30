@@ -1,22 +1,45 @@
-# Bases de données
+# Bases de données & volumes locaux
 data/
 
-# Environnements virtuels et dépendances
+# Environnements virtuels Python
 venv/
 .venv/
+backend/venv/
 backend/.venv/
 __pycache__/
 *.pyc
 *.pyd
+.pytest_cache/
+
+# Dépendances et builds Frontend
 node_modules/
-
-# Variables d'environnement
-.env
-
-# Build artifacts (ne pas pousser dans git)
 frontend/dist/
 frontend/images/
+.vite/
 
-# Fichiers de test et d'uploads temporaires
-backend/test_resend.py
+# Variables d'environnement sensibles (garder .env.example)
+.env
+backend/.env
+!.env.example
+!backend/.env.example
+
+# Fichiers d'uploads locaux & temporaires
 backend/uploads/
+backend/test_resend.py
+
+# Fichiers de compilation LaTeX
+rapport/*.aux
+rapport/*.log
+rapport/*.out
+rapport/*.toc
+rapport/*.lof
+rapport/*.lot
+rapport/*.fls
+rapport/*.fdb_latexmk
+rapport/*.synctex.gz
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

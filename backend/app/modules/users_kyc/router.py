@@ -17,6 +17,7 @@ from app.modules.users_kyc.schemas import (
     UserOut,
     UserUpdate,
     TokenResponse,
+    RefreshTokenRequest,
     VerifyCodeRequest,
     ResendCodeRequest,
     TestEmailRequest,
@@ -168,6 +169,11 @@ def debug_test_email(
 @router.post("/login", response_model=TokenResponse)
 def login(data: UserLogin, db: Session = Depends(get_session)):
     return service.login_user(db, data)
+
+
+@router.post("/refresh", response_model=TokenResponse, summary="Renouveler l'access token avec le refresh token")
+def refresh(data: RefreshTokenRequest, db: Session = Depends(get_session)):
+    return service.refresh_access_token(db, data.refresh_token)
 
 
 

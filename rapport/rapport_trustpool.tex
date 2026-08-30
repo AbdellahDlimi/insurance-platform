@@ -1,0 +1,1308 @@
+\documentclass[12pt,a4paper]{report}
+
+\usepackage[english,french]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{left=2.5cm,right=2.5cm,top=1.5cm,bottom=2cm}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{colortbl}
+\usepackage{setspace}
+\usepackage{tocloft}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{amsmath}
+
+% --- Chemin par défaut des images ---
+\graphicspath{{images/}}
+
+\definecolor{gold}{RGB}{150,120,60}
+\definecolor{ink}{RGB}{20,20,20}
+\definecolor{tablehead}{RGB}{50,50,50}
+
+\onehalfspacing
+
+\hypersetup{colorlinks=true,linkcolor=gold,urlcolor=gold,citecolor=gold,
+  pdftitle={Conception et réalisation d'une plateforme SaaS d'assurance collaborative P2P assistée par IA}}
+
+\titleformat{\chapter}[block]{\normalfont\Large\bfseries\color{ink}}{Chapitre \thechapter}{1em}{}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{1em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{ENSA — Filière Big Data, Data Science \& AI}
+\fancyhead[R]{\leftmark}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\setlist[itemize]{leftmargin=1.2em}
+
+\begin{document}
+
+% ============================================================
+% PAGE DE GARDE
+% ============================================================
+\begin{titlepage}
+\centering
+\vspace*{0.5cm}
+
+% --- Logo de l'école (décommentez et remplacez le nom du fichier) ---
+% \includegraphics[width=4cm]{logo_ensa.png}\\[0.5cm]
+
+{\large École Nationale des Sciences Appliquées}\\[0.2cm]
+{\large Filière : Big Data, Data Science \& Intelligence Artificielle}\\[1.5cm]
+
+\rule{\linewidth}{0.5pt}\\[0.4cm]
+{\Huge\bfseries Rapport de Projet de Fin d'Année}\\[0.4cm]
+\rule{\linewidth}{0.5pt}\\[1.2cm]
+
+{\Large\bfseries Conception et réalisation d'une plateforme SaaS\\[0.2cm]
+d'assurance collaborative Peer-to-Peer\\[0.2cm]
+assistée par Intelligence Artificielle}\\[0.5cm]
+
+{\large \textit{Le cas du projet TrustPool}}\\[2cm]
+
+\begin{tabular}{ll}
+\textbf{Réalisé par :} & Abdellah Dlimi \\
+ & Ilyass Aitaqmout \\[0.4cm]
+\textbf{Filière :} & Big Data, Data Science \& AI — 4\textsuperscript{ème} année \\[0.4cm]
+\textbf{Encadrant académique :} & \underline{\hspace{6cm}} \\[0.4cm]
+\textbf{Année universitaire :} & 2025 -- 2026 \\
+\end{tabular}
+
+\vfill
+\end{titlepage}
+
+\thispagestyle{empty}
+\begin{center}
+\vspace*{2cm}
+\textit{« L'université n'entend donner aucune approbation ni improbation aux opinions émises dans ce mémoire : ces opinions doivent être considérées comme propres à leurs auteurs. »}
+\end{center}
+\newpage
+
+% ============================================================
+\chapter*{Dédicace}
+\addcontentsline{toc}{chapter}{Dédicace}
+\thispagestyle{empty}
+
+Nous dédions ce travail :
+
+\begin{itemize}
+    \item À nos familles, pour leur amour inconditionnel, leurs sacrifices et leur soutien constant tout au long de notre parcours académique.
+    \item À notre cher établissement, l'École Nationale des Sciences Appliquées d'Agadir (ENSA Agadir), source de notre formation d'ingénieurs.
+    \item À notre encadrant, \textbf{[Nom de l'encadrant]}, pour son orientation précieuse, sa patience et ses conseils éclairés qui ont guidé la réalisation de ce projet.
+    \item À tous nos professeurs et à toutes les personnes qui ont contribué, de près ou de loin, au succès de ce travail.
+\end{itemize}
+
+\vspace{2cm}
+\begin{center}
+    \textit{L'équipe du projet}
+\end{center}
+
+\newpage
+% ============================================================
+\chapter*{Remerciements}
+\addcontentsline{toc}{chapter}{Remerciements}
+\thispagestyle{empty}
+Nous tenons à exprimer notre sincère gratitude à notre encadrant académique pour ses conseils avisés, sa disponibilité et son accompagnement tout au long de ce projet de fin d'année.
+
+Nous remercions également l'ensemble du corps professoral de la filière Big Data, Data Science \& Intelligence Artificielle de l'École Nationale des Sciences Appliquées pour la qualité de la formation dispensée, qui nous a permis de mobiliser les connaissances nécessaires à la réalisation de ce travail.
+
+Nos remerciements vont enfin à toutes les personnes ayant, de près ou de loin, apporté leur soutien à l'aboutissement de ce projet.
+\newpage
+
+% ============================================================
+% TABLE DES MATIÈRES AUTOMATIQUE
+% ============================================================
+\tableofcontents
+\newpage
+
+% ============================================================
+\chapter*{Liste des figures et tableaux}
+\addcontentsline{toc}{chapter}{Liste des figures et tableaux}
+\listoffigures
+\listoftables
+\newpage
+
+% ============================================================
+\chapter*{Liste des abréviations et acronymes}
+\addcontentsline{toc}{chapter}{Liste des abréviations et acronymes}
+\begin{longtable}{p{3cm}p{11cm}}
+\toprule
+\textbf{API} & \textit{Application Programming Interface} — interface de programmation applicative \\
+\textbf{ENSA} & École Nationale des Sciences Appliquées \\
+\textbf{ERD} & \textit{Entity-Relationship Diagram} — diagramme entité-relation \\
+\textbf{IA} & Intelligence Artificielle \\
+\textbf{JWT} & \textit{JSON Web Token} \\
+\textbf{KYC} & \textit{Know Your Customer} — vérification d'identité client \\
+\textbf{MLOps} & \textit{Machine Learning Operations} \\
+\textbf{OCR} & \textit{Optical Character Recognition} — reconnaissance optique de caractères \\
+\textbf{PFA} & Projet de Fin d'Année \\
+\textbf{P2P} & \textit{Peer-to-Peer} — pair-à-pair \\
+\textbf{RAG} & \textit{Retrieval-Augmented Generation} \\
+\textbf{RGPD} & Règlement Général sur la Protection des Données \\
+\textbf{SaaS} & \textit{Software as a Service} \\
+\textbf{UML} & \textit{Unified Modeling Language} \\
+\bottomrule
+\end{longtable}
+\newpage
+
+% ============================================================
+\chapter*{Résumé}
+\addcontentsline{toc}{chapter}{Résumé}
+\thispagestyle{empty}
+Ce rapport présente la conception et la réalisation de TrustPool, une plateforme SaaS d'assurance collaborative peer-to-peer assistée par intelligence artificielle. Le projet répond à une problématique centrale : comment concevoir un système d'assurance mutualisée équitable, transparent et sécurisé, tout en limitant les risques de fraude inhérents à tout mécanisme déclaratif ? Nous présentons dans ce mémoire l'ensemble de la démarche suivie : analyse fonctionnelle, modélisation UML, architecture technique en microservices, intégration d'une couche d'intelligence artificielle (recommandation, détection de fraude, génération augmentée par récupération), ainsi que les résultats obtenus lors de la phase de réalisation.
+
+\textbf{Mots-clés :} assurance collaborative, peer-to-peer, intelligence artificielle, RAG, microservices, sécurité, bonus-malus.
+
+\vspace{1cm}
+\begin{otherlanguage}{english}
+\textbf{Abstract}
+
+This report presents the design and implementation of TrustPool, a SaaS platform for peer-to-peer collaborative insurance powered by artificial intelligence. The project addresses a central question: how to design a fair, transparent, and secure mutualized insurance system while limiting the fraud risks inherent to any declarative process? This report covers the full approach followed: functional analysis, UML modeling, microservices-based technical architecture, integration of an artificial intelligence layer (recommendation, fraud detection, retrieval-augmented generation), as well as the results obtained during the implementation phase.
+
+\textbf{Keywords:} collaborative insurance, peer-to-peer, artificial intelligence, RAG, microservices, security, bonus-malus.
+\end{otherlanguage}
+\newpage
+
+% ============================================================
+\chapter*{Introduction générale}
+\addcontentsline{toc}{chapter}{Introduction générale}
+% ============================================================
+L'assurance traditionnelle repose depuis des décennies sur un modèle centralisé où un assureur unique mutualise le risque d'un grand nombre d'assurés, en prélevant au passage une marge de gestion souvent perçue comme opaque par les assurés eux-mêmes. Cette opacité, conjuguée à la lenteur du traitement des sinistres, alimente une défiance croissante envers les acteurs traditionnels du secteur.
+
+Face à ce constat, des modèles alternatifs émergent à l'échelle internationale, fondés sur la mutualisation directe entre pairs plutôt que sur l'intermédiation d'un assureur unique. C'est dans cette dynamique que s'inscrit notre projet de fin d'année : la conception et la réalisation de \textit{TrustPool}, une plateforme SaaS d'assurance collaborative \textit{peer-to-peer}, dans laquelle des groupes d'individus mutualisent leurs cotisations au sein d'une cagnotte commune, avec l'appui d'une infrastructure technique et d'une couche d'intelligence artificielle.
+
+Ce projet, réalisé dans le cadre de notre quatrième année de la filière Big Data, Data Science \& Intelligence Artificielle de l'École Nationale des Sciences Appliquées, nous a permis de mobiliser l'ensemble des compétences acquises durant notre formation : modélisation de systèmes d'information, architecture logicielle, apprentissage automatique, et développement d'applications complètes.
+
+La question centrale à laquelle ce travail cherche à répondre est la suivante : \textit{comment concevoir une plateforme d'assurance collaborative qui soit à la fois équitable dans sa tarification, transparente dans sa gouvernance, et résiliente face au risque de fraude, tout en s'appuyant sur une architecture technique moderne et une intelligence artificielle explicable ?}
+
+Pour y répondre, nous avons structuré notre démarche méthodologique en trois grandes étapes : une phase d'analyse et de cadrage du projet, une phase de conception fonctionnelle et technique formalisée par une modélisation UML complète, et une phase de réalisation ayant abouti à une plateforme fonctionnelle et testée.
+
+Ce rapport est organisé en trois parties. La première partie présente le contexte du projet, l'entreprise ou structure d'accueil, ainsi que la vision générale de TrustPool. La deuxième partie détaille l'analyse et la conception du système : cahier des charges, modélisation UML et architecture technique retenue. La troisième partie expose la réalisation concrète du projet : les modules métier implémentés, la couche d'intelligence artificielle, les mécanismes de sécurité, l'interface utilisateur, ainsi que les résultats des tests menés. Nous concluons ce travail par un bilan critique et les perspectives d'évolution envisagées pour la plateforme.
+
+\newpage
+
+% ============================================================
+\part{Contexte du projet}
+% ============================================================
+
+% ============================================================
+\chapter{Présentation du cadre du projet}
+% ============================================================
+
+\section{Introduction}
+Ce premier chapitre a pour objectif de présenter le cadre institutionnel et organisationnel dans lequel s'inscrit notre projet de fin d'année.
+
+\section{Présentation de l'entreprise / structure d'accueil}
+\textit{[Section à compléter]}
+
+\section{Secteur d'activité et positionnement}
+\textit{[Section à compléter]}
+
+\section{Service ou département d'affectation}
+\textit{[Section à compléter]}
+
+\section{Mission confiée}
+\textit{[Section à compléter]}
+
+\section{Conclusion}
+Ce chapitre a permis de poser le cadre organisationnel de notre projet. Le chapitre suivant présente en détail le projet TrustPool lui-même, sa vision et ses objectifs.
+
+\newpage
+
+% ============================================================
+\chapter{Présentation générale de TrustPool}
+% ============================================================
+
+\section{Introduction}
+Après avoir présenté le cadre institutionnel de notre projet, ce chapitre expose la vision, le positionnement et les objectifs de la plateforme TrustPool, cœur de notre travail de fin d'année.
+
+% --- IMAGE : Logo ou landing page de TrustPool ---
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{logo.png}
+    \caption{Page d'accueil de la plateforme TrustPool}
+    \label{fig:landing-trustpool}
+\end{figure}
+
+\section{Vision et concept de la plateforme}
+\textit{TrustPool} est une plateforme SaaS qui modernise le principe de la tontine et de la micro-mutuelle collaborative grâce au numérique, à l'intelligence artificielle et aux architectures événementielles. Les utilisateurs se regroupent en pools de risque par affinité ou par type de risque (mobilité, habitation, équipements électroniques, etc.), versent une cotisation périodique dans une cagnotte commune, et bénéficient d'un système transparent et automatisé de gestion des sinistres.
+
+Contrairement à l'assurance traditionnelle, l'excédent de la cagnotte non consommé par les sinistres est redistribué aux membres du groupe en fin de période, ce qui constitue l'un des principaux leviers de différenciation de notre proposition de valeur.
+
+% --- IMAGE : Schéma comparatif assurance traditionnelle vs P2P ---
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.85\textwidth]{comparaison_modeles.png}
+%     \caption{Comparaison entre le modèle d'assurance traditionnel et le modèle P2P de TrustPool}
+%     \label{fig:comparaison-modeles}
+% \end{figure}
+
+\section{Problématique et objectifs du projet}
+La problématique centrale de notre travail peut être formulée ainsi : \textit{comment concevoir une plateforme d'assurance collaborative qui garantisse à la fois l'équité de la tarification entre membres, la transparence de la gestion financière, et la résilience face au risque de fraude déclarative, tout en s'appuyant sur une architecture technique évolutive et une intelligence artificielle explicable ?}
+
+Les objectifs poursuivis dans le cadre de ce projet sont les suivants :
+\begin{itemize}
+    \item concevoir une architecture microservices robuste et évolutive ;
+    \item implémenter un mécanisme de tarification dynamique équitable, fondé sur un principe de bonus-malus ;
+    \item intégrer une couche d'intelligence artificielle complète, couvrant la recommandation, la détection de fraude et l'assistance conversationnelle ;
+    \item garantir la sécurité et la confidentialité des données d'identité des membres ;
+    \item livrer une interface utilisateur soignée, cohérente et validée par une suite de tests automatisés.
+\end{itemize}
+
+\section{Positionnement : un tiers de confiance technique}
+TrustPool se positionne comme un \textit{tiers de confiance technique} et non comme un assureur traditionnel. La plateforme fournit l'infrastructure, l'intelligence artificielle et la sécurité des flux financiers, tandis que la responsabilité de la validation finale des sinistres reste portée par l'administrateur de chaque groupe, qui est lui-même un membre désigné ou fondateur de ce groupe. Ce choix de conception, structurant pour l'ensemble du projet, est justifié en détail au chapitre 3.
+
+\section{Conclusion}
+Ce chapitre a présenté la vision, la problématique et le positionnement du projet TrustPool. La partie suivante détaille la démarche d'analyse et de conception qui a permis de traduire cette vision en un système d'information complet.
+
+\newpage
+
+% ============================================================
+\part{Analyse et conception du système}
+% ============================================================
+
+% ============================================================
+\chapter{Cahier des charges fonctionnel}
+% ============================================================
+
+\section{Introduction}
+Ce chapitre présente le cahier des charges fonctionnel de la plateforme TrustPool, établi à partir de l'analyse des besoins et des choix de conception retenus pour le projet.
+
+\section{Acteurs et rôles}
+Quatre grandes catégories d'acteurs interagissent avec le système :
+
+\begin{itemize}
+    \item \textbf{L'utilisateur (membre)} : toute personne inscrite sur la plateforme après avoir complété son processus d'inscription et de vérification d'identité. Il peut créer ou rejoindre un groupe, cotiser, déclarer un sinistre, et consulter son tableau de bord.
+    \item \textbf{L'administrateur de groupe} : un membre ayant créé un groupe, ou à qui ce rôle a été délégué. Il hérite de toutes les capacités d'un utilisateur standard, avec en plus la validation des demandes d'adhésion et des sinistres.
+    \item \textbf{L'équipe de conformité} : équipe interne à la plateforme, responsable de la validation manuelle des vérifications d'identité ambiguës et du traitement des demandes exceptionnelles de levée d'anonymat.
+    \item \textbf{Le système (intelligence artificielle)} : ensemble des composants logiciels agissant en support des décisions humaines, sans jamais s'y substituer sur les sujets sensibles.
+\end{itemize}
+
+\section{Besoins fonctionnels}
+Les besoins fonctionnels couvrent l'ensemble du cycle de vie de la plateforme : inscription et vérification d'identité, création et gestion de groupes, recommandation de groupe assistée par intelligence artificielle, cotisation avec mécanisme de tarification dynamique, déclaration et traitement des sinistres, détection de fraude, tableau de bord, et notifications.
+
+\subsection{Gestion des comptes utilisateurs}
+L'inscription d'un utilisateur repose sur un formulaire de profil complété par un questionnaire de risque, suivi d'une vérification d'identité en deux temps : une tentative de validation automatique via une API tierce spécialisée, puis, en cas d'échec ou de doute, une validation manuelle réalisée par l'équipe de conformité. L'authentification est sécurisée par un mécanisme de jetons à courte durée de vie, complété par une procédure de réinitialisation de mot de passe fondée sur un code à usage unique.
+
+\subsection{Création et gestion de groupes}
+Un groupe est créé par un utilisateur qui en devient automatiquement l'administrateur. Chaque groupe définit une spécialité, une cotisation de base, une capacité maximale de membres, et un mode d'adhésion, ouvert ou soumis à validation. Un lien d'invitation unique est généré à la création du groupe.
+
+\subsection{Recommandation de groupe}
+Un moteur de recommandation suggère à chaque utilisateur les groupes les plus compatibles avec son profil, en s'appuyant sur une mesure de similarité vectorielle entre le profil de l'utilisateur et les caractéristiques agrégées de chaque groupe éligible.
+
+\subsection{Cotisation et mécanisme de tarification dynamique}
+Le mécanisme de tarification dynamique constitue l'un des points structurants du cahier des charges : tous les membres d'un groupe démarrent avec une cotisation de base identique, laquelle évolue ensuite selon un coefficient individuel de type \textit{bonus-malus}, calculé sur la base du comportement réel du membre au sein de la plateforme, sans dépendre d'un historique déclaratif externe invérifiable. Le montant final de la cotisation d'un membre est ainsi obtenu par la formule suivante :
+\[
+\text{Cotisation individuelle} = \text{Cotisation de base du groupe} \times \text{Coefficient bonus-malus du membre}
+\]
+Le coefficient démarre à 1,00 pour tout nouveau membre et augmente de 0,20 point par sinistre validé sur la période en cours, dans la limite d'un plafond fixé à 2,00. Ce mécanisme est décrit plus en détail au chapitre 6.
+
+\subsection{Déclaration et traitement des sinistres}
+Un membre déclare un sinistre en fournissant une description, un montant estimé, et des pièces justificatives. Le système déclenche alors, de façon asynchrone, une extraction du contenu des pièces jointes, une analyse de cohérence, et un calcul de score d'anomalie, avant que l'administrateur du groupe ne prenne la décision finale de validation ou de refus.
+
+\subsection{Tableau de bord et notifications}
+Chaque utilisateur dispose d'un tableau de bord personnel agrégeant l'état de ses différents groupes, ainsi que d'un tableau de bord dédié par groupe. Des notifications in-app et par courrier électronique informent les membres des événements significatifs les concernant.
+
+\section{Besoins non fonctionnels}
+Les besoins non fonctionnels concernent principalement la sécurité, la performance, la disponibilité et l'accessibilité de la plateforme.
+
+\begin{longtable}{p{4cm}p{9.5cm}}
+\caption{Exigences non fonctionnelles retenues pour le projet}
+\label{tab:exigences-nf} \\
+\rowcolor{tablehead}
+\textcolor{white}{\textbf{Catégorie}} & \textcolor{white}{\textbf{Exigence}} \\
+\toprule
+\endfirsthead
+\rowcolor{tablehead}
+\textcolor{white}{\textbf{Catégorie}} & \textcolor{white}{\textbf{Exigence}} \\
+\toprule
+\endhead
+Sécurité & Chiffrement systématique des données sensibles, séparation stricte entre données pseudonymisées et données d'identité réelle \\
+Performance & Mise à jour du solde de la cagnotte en temps quasi réel sur le tableau de bord \\
+Disponibilité & Architecture en microservices permettant une montée en charge indépendante de chaque service \\
+Accessibilité & Interfaces web et mobile cohérentes, respect des standards de contraste et de lisibilité \\
+Traçabilité & Journalisation de toute action sensible dans un journal d'audit immuable \\
+\bottomrule
+\end{longtable}
+
+\section{Conclusion}
+Le cahier des charges présenté dans ce chapitre a servi de socle à l'ensemble de la démarche de modélisation détaillée dans le chapitre suivant. Il constitue le référentiel auquel chaque choix de conception ultérieur a systématiquement été rapporté, afin de garantir la cohérence globale du système.
+
+\newpage
+
+% ============================================================
+\chapter{Modélisation UML}
+% ============================================================
+
+\section{Introduction}
+La modélisation \textit{UML} (\textit{Unified Modeling Language}) permet de formaliser les exigences fonctionnelles, la structure des données et la dynamique des interactions de la plateforme TrustPool. Ce chapitre présente l'ensemble des diagrammes réalisés au cours de la phase de conception.
+
+\section{Diagramme de cas d'utilisation}
+Le diagramme de cas d'utilisation modélise les interactions entre les quatre acteurs identifiés au chapitre précédent et l'ensemble des fonctionnalités du système. Il est décliné en trois espaces applicatifs distincts : l'espace membre, l'espace administrateur, et le back-office conformité et intelligence artificielle (voir Figure~\ref{fig:use-case}).
+
+Les principales relations \textit{include} et \textit{extend} identifiées concernent notamment l'inscription (qui inclut la vérification du code envoyé par email), la déclaration d'un sinistre (qui inclut le verrou de vérification d'identité et l'analyse par intelligence artificielle), et la validation d'un sinistre par l'administrateur, qui peut être précédée de la consultation d'avis consultatifs des membres du groupe, sans que ceux-ci n'aient de caractère décisionnel.
+
+% --- IMAGE : Diagramme de cas d'utilisation ---
+\begin{figure}[H]
+    \centering
+    % Décommentez et remplacez par votre image :
+    % \includegraphics[width=\textwidth]{diagramme_cas_utilisation.png}
+    \fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}\textit{Diagramme de cas d'utilisation à insérer ici}\vspace{3cm}}}
+    \caption{Diagramme de cas d'utilisation global de la plateforme TrustPool}
+    \label{fig:use-case}
+\end{figure}
+
+\section{Diagramme de classes}
+Le diagramme de classes modélise l'ensemble des entités persistées et leurs relations structurelles. Les classes principales comprennent : \texttt{Utilisateur}, \texttt{CoffreKYC}, \texttt{Groupe}, \texttt{MembreGroupe}, \texttt{Cagnotte}, \texttt{Cotisation}, \texttt{Sinistre}, \texttt{PieceJustificative}, \texttt{AlerteFraude}, \texttt{AvisSinistre} et \texttt{NotificationInApp} (voir Figure~\ref{fig:class-diagram}).
+
+Un point de conception important a été tranché durant la phase de modélisation : la classe \texttt{Sinistre} porte un champ \texttt{valide\_par\_admin\_id} et une classe \texttt{AvisSinistre} distincte, garantissant que la décision finale de validation d'un sinistre reste unipersonnelle et attribuable à l'administrateur du groupe, tandis que les avis des autres membres restent purement consultatifs. Ce choix découle directement du positionnement de tiers de confiance technique évoqué au chapitre 2 : la responsabilité légale doit rester clairement identifiable.
+
+% --- IMAGE : Diagramme de classes ---
+\begin{figure}[H]
+    \centering
+    % Décommentez et remplacez par votre image :
+    % \includegraphics[width=\textwidth]{diagramme_classes.png}
+    \fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}\textit{Diagramme de classes à insérer ici}\vspace{3cm}}}
+    \caption{Diagramme de classes de la plateforme TrustPool}
+    \label{fig:class-diagram}
+\end{figure}
+
+\section{Diagrammes de séquence}
+Plusieurs diagrammes de séquence ont été réalisés afin de formaliser les flux dynamiques critiques du système, notamment :
+\begin{itemize}
+    \item l'inscription avec double confirmation par code à usage unique et verrou de vérification d'identité ;
+    \item la déclaration d'un sinistre, incluant l'analyse automatisée par intelligence artificielle et la détection de fraude ;
+    \item la validation d'un sinistre par l'administrateur et le déclenchement de l'indemnisation depuis la cagnotte ;
+    \item le calcul périodique du coefficient bonus-malus ;
+    \item la procédure de levée d'anonymat en cas de litige.
+\end{itemize}
+
+% --- IMAGES : Diagrammes de séquence (exemple avec deux côte à côte) ---
+% \begin{figure}[H]
+%     \centering
+%     \begin{subfigure}[b]{0.48\textwidth}
+%         \centering
+%         \includegraphics[width=\textwidth]{seq_inscription.png}
+%         \caption{Séquence d'inscription}
+%         \label{fig:seq-inscription}
+%     \end{subfigure}
+%     \hfill
+%     \begin{subfigure}[b]{0.48\textwidth}
+%         \centering
+%         \includegraphics[width=\textwidth]{seq_sinistre.png}
+%         \caption{Séquence de déclaration de sinistre}
+%         \label{fig:seq-sinistre}
+%     \end{subfigure}
+%     \caption{Diagrammes de séquence principaux}
+%     \label{fig:sequences}
+% \end{figure}
+
+% --- IMAGE : Séquence d'inscription ---
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.9\textwidth]{seq_inscription.png}
+    \fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}\textit{Diagramme de séquence — Inscription à insérer ici}\vspace{3cm}}}
+    \caption{Diagramme de séquence : parcours d'inscription et vérification d'identité}
+    \label{fig:seq-inscription}
+\end{figure}
+
+% --- IMAGE : Séquence de déclaration de sinistre ---
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.9\textwidth]{seq_sinistre.png}
+    \fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}\textit{Diagramme de séquence — Sinistre à insérer ici}\vspace{3cm}}}
+    \caption{Diagramme de séquence : déclaration et traitement d'un sinistre}
+    \label{fig:seq-sinistre}
+\end{figure}
+
+% --- IMAGE : Séquence de validation de sinistre ---
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.9\textwidth]{seq_validation_sinistre.png}
+    \fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}\textit{Diagramme de séquence — Validation sinistre à insérer ici}\vspace{3cm}}}
+    \caption{Diagramme de séquence : validation d'un sinistre et indemnisation}
+    \label{fig:seq-validation}
+\end{figure}
+
+\section{Diagramme de composants}
+Le diagramme de composants représente la décomposition logicielle du système en composants métier (utilisateurs, groupes, cagnotte, sinistres, paiement, notifications) et composants d'intelligence artificielle (bonus-malus, recommandation, détection de fraude), avec leurs dépendances vers la couche de données.
+
+% --- IMAGE : Diagramme de composants ---
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.9\textwidth]{diagramme_composants.png}
+    \fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}\textit{Diagramme de composants à insérer ici}\vspace{3cm}}}
+    \caption{Diagramme de composants du système TrustPool}
+    \label{fig:composants}
+\end{figure}
+
+\section{Diagramme d'architecture globale}
+Le diagramme d'architecture globale offre une vue d'ensemble du système organisée en couches : client, passerelle API, services métier, bus d'événements, services d'intelligence artificielle, et couche de données hybride.
+
+% --- IMAGE : Architecture globale ---
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.9\textwidth]{architecture_globale.png}
+    \fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}\textit{Diagramme d'architecture globale à insérer ici}\vspace{3cm}}}
+    \caption{Architecture globale en couches de la plateforme TrustPool}
+    \label{fig:architecture-globale}
+\end{figure}
+
+\section{Diagramme de déploiement}
+Le diagramme de déploiement modélise l'infrastructure cible du système : conteneurs applicatifs, services de données managés, et services externes.
+
+% --- IMAGE : Diagramme de déploiement ---
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.85\textwidth]{diagramme_deploiement.png}
+    \fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}\textit{Diagramme de déploiement à insérer ici}\vspace{3cm}}}
+    \caption{Diagramme de déploiement de l'infrastructure TrustPool}
+    \label{fig:deploiement}
+\end{figure}
+
+\section{Modèle de données (ERD / DBML)}
+Le modèle de données relationnel complet a été formalisé en langage \textit{DBML}, couvrant l'identité et la vérification d'identité, les groupes et adhésions, la finance, les sinistres et la fraude, ainsi que la conformité.
+
+% --- IMAGE : ERD ---
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=\textwidth]{erd_trustpool.png}
+    \fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}\textit{Diagramme Entité-Relation (ERD) à insérer ici}\vspace{3cm}}}
+    \caption{Modèle de données relationnel (ERD) de la plateforme TrustPool}
+    \label{fig:erd}
+\end{figure}
+
+\section{Diagramme des flux de données}
+Ce diagramme retrace la circulation de l'information entre les principaux processus métier et les entrepôts de données associés.
+
+% --- IMAGE : Flux de données ---
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.9\textwidth]{flux_donnees.png}
+    \fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}\textit{Diagramme des flux de données à insérer ici}\vspace{3cm}}}
+    \caption{Diagramme des flux de données du système TrustPool}
+    \label{fig:flux-donnees}
+\end{figure}
+
+\section{Diagramme de sécurité}
+Le diagramme de sécurité détaille le mécanisme d'authentification et d'autorisation retenu, fondé sur des jetons \textit{JWT} et un contrôle d'accès basé sur les rôles. Un jeton d'accès de courte durée de vie est délivré à chaque connexion, complété par un jeton de rafraîchissement révocable, permettant de renouveler la session sans redemander les identifiants.
+
+% --- IMAGE : Diagramme de sécurité ---
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.85\textwidth]{diagramme_securite.png}
+    \fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}\textit{Diagramme de sécurité / flux JWT à insérer ici}\vspace{3cm}}}
+    \caption{Flux d'authentification et d'autorisation JWT}
+    \label{fig:securite}
+\end{figure}
+
+\section{Catalogue détaillé des cas d'utilisation}
+Le tableau suivant synthétise, par acteur, l'ensemble des cas d'utilisation identifiés lors de la phase de conception.
+
+\begin{longtable}{p{3.5cm}p{9.5cm}}
+\caption{Catalogue des cas d'utilisation par acteur}
+\label{tab:catalogue-uc} \\
+\rowcolor{tablehead}
+\textcolor{white}{\textbf{Acteur}} & \textcolor{white}{\textbf{Cas d'utilisation}} \\
+\toprule
+\endfirsthead
+\rowcolor{tablehead}
+\textcolor{white}{\textbf{Acteur}} & \textcolor{white}{\textbf{Cas d'utilisation}} \\
+\toprule
+\endhead
+Utilisateur & S'inscrire, compléter son profil de risque, créer un groupe, rechercher des groupes, consulter les recommandations, demander ou rejoindre un groupe, consulter le tableau de bord, consulter son coefficient bonus-malus, déclarer un sinistre, téléverser des pièces justificatives, cotiser, gérer son profil et ses moyens de paiement \\
+Administrateur de groupe & Hérite des cas d'utilisation de l'utilisateur, avec en complément : valider ou refuser une demande d'adhésion, gérer les paramètres du groupe, consulter la liste des membres, exclure un membre, consulter les alertes de fraude, valider ou refuser un sinistre, escalader un cas de fraude, déclencher une demande de levée d'anonymat \\
+Équipe de conformité & Superviser les groupes, consulter les journaux d'audit, valider manuellement une identité, traiter une demande de levée d'anonymat, suspendre un compte en cas grave \\
+Système (intelligence artificielle) & Calculer le score de compatibilité pour la recommandation, calculer le score de fraude d'un sinistre, calculer le coefficient bonus-malus, générer un résumé des pièces justificatives, générer une explication d'une alerte de fraude \\
+\bottomrule
+\end{longtable}
+
+\section{Parcours utilisateurs détaillés}
+Afin de valider la cohérence de la modélisation avec les besoins exprimés, plusieurs parcours utilisateurs de bout en bout ont été rédigés et confrontés aux diagrammes de séquence correspondants.
+
+\subsection{Parcours d'inscription et de vérification d'identité}
+L'utilisateur renseigne ses informations personnelles, complète le questionnaire de profil de risque, puis transmet une pièce d'identité. Le système tente une validation automatique ; en cas de succès, le compte est immédiatement activé. En cas d'échec, le compte reste en attente et une vérification manuelle est réalisée par l'équipe de conformité avant activation.
+
+\subsection{Parcours de déclaration et de traitement d'un sinistre}
+Le membre déclare un sinistre et joint des pièces justificatives. Le système déclenche en parallèle l'extraction du contenu des pièces, le calcul du score de fraude, et la génération d'un résumé. L'administrateur du groupe consulte ce dossier enrichi puis rend sa décision, laquelle déclenche, en cas de validation, le débit de la cagnotte et la mise à jour du coefficient bonus-malus du membre concerné.
+
+\section{Conclusion}
+L'ensemble des diagrammes et parcours présentés dans ce chapitre constitue le socle de conception du projet TrustPool. Le chapitre suivant présente l'architecture technique qui en découle.
+
+\newpage
+
+% ============================================================
+\chapter{Architecture technique}
+% ============================================================
+
+\section{Introduction}
+Ce chapitre décrit l'architecture technique retenue pour la réalisation de la plateforme TrustPool, ainsi que la stack technologique associée.
+
+\section{Principes d'architecture}
+L'architecture repose sur trois principes directeurs : une architecture en couches et événementielle (Layered \& Event-Driven Architecture) garantissant une séparation stricte des responsabilités (Présentation, API Router, Logique Métier, Accès aux Données, Messagerie et Stockage), un découplage des traitements lourds (notifications, analyse de fraude) via un bus d'événements asynchrone, et une architecture de données hybride combinant bases relationnelle, vectorielle, graphe et stockage objet.
+
+\subsection{Vue d'ensemble de l'architecture}
+La figure ci-dessous illustre la décomposition globale en couches de l'application, allant du client frontend jusqu'aux services tiers et systèmes de persistance.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{architecture_globale.png}
+    \caption{Architecture globale et en couches de la plateforme TrustPool}
+    \label{fig:arch_globale}
+\end{figure}
+
+\section{Stack technique retenue}
+\begin{longtable}{p{4.5cm}p{9cm}}
+\caption{Stack technique retenue pour le projet TrustPool}
+\label{tab:stack} \\
+\rowcolor{tablehead}
+\textcolor{white}{\textbf{Domaine}} & \textcolor{white}{\textbf{Technologies}} \\
+\toprule
+\endfirsthead
+\rowcolor{tablehead}
+\textcolor{white}{\textbf{Domaine}} & \textcolor{white}{\textbf{Technologies}} \\
+\toprule
+\endhead
+Frontend & React 18, Vite, Tailwind CSS, Framer Motion \\
+Backend API & Python FastAPI, SQLAlchemy ORM, Pydantic v2, JWT \\
+Base de données & PostgreSQL 16 avec extension pgvector \\
+Graphes / Fraude & Neo4j \\
+Bus d'événements & Apache Kafka (mode KRaft) \\
+Stockage fichiers & MinIO / S3 \\
+Paiement & Stripe Checkout / PaymentIntent \\
+\bottomrule
+\end{longtable}
+
+% --- IMAGE : Logos de la stack technique ---
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.9\textwidth]{stack_logos.png}
+%     \caption{Technologies composant la stack technique de TrustPool}
+%     \label{fig:stack-logos}
+% \end{figure}
+
+\section{Architecture de données hybride}
+La couche de données du système combine trois technologies complémentaires : \textit{PostgreSQL} pour le socle transactionnel et financier, une extension vectorielle (\textit{pgvector}) pour les besoins de recherche sémantique du module conversationnel, et une base orientée graphe (\textit{Neo4j}) dédiée à la détection de réseaux de fraude entre membres.
+
+Le choix de retenir \textit{pgvector} comme extension de PostgreSQL, plutôt qu'une base vectorielle dédiée distincte, a été motivé par la volonté de limiter le nombre de technologies à opérer simultanément, un critère particulièrement pertinent dans le contexte d'un projet de fin d'année réalisé en binôme.
+
+% --- IMAGE : Architecture de données ---
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.85\textwidth]{architecture_donnees.png}
+%     \caption{Architecture de données hybride : PostgreSQL + pgvector + Neo4j}
+%     \label{fig:arch-donnees}
+% \end{figure}
+
+\section{Pattern d'implémentation retenu}
+Chaque module backend développé suit une structure homogène, garantissant une séparation claire des responsabilités :
+\begin{itemize}
+    \item Un routeur API REST exposant les points d'entrée (sécurisés par JWT et Rate Limiting).
+    \item Un service portant la logique métier et les règles de gestion.
+    \item Un dépôt (Repository) gérant l'accès aux données (SQLAlchemy, Neo4j Bolt Client ou MinIO Client).
+    \item Des schémas de validation Pydantic pour les entrées et sorties.
+    \item Un wrapper d'événements Kafka pour la publication asynchrone.
+\end{itemize}
+
+\section{Bus d'événements et flux asynchrones}
+Kafka agit comme le système nerveux central de la plateforme, découplant totalement les modules producteurs des consommateurs asynchrones à travers 10 topics principaux.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{kafka_bus.png}
+    \caption{Schéma détaillé du bus d'événements Kafka (Producteurs, Topics et Consommateurs)}
+    \label{fig:kafka_bus}
+\end{figure}
+
+\section{Principaux événements du bus applicatif}
+\begin{longtable}{p{5cm}p{8.5cm}}
+\caption{Principaux événements circulant sur le bus Kafka}
+\label{tab:events} \\
+\rowcolor{tablehead}
+\textcolor{white}{\textbf{Événement}} & \textcolor{white}{\textbf{Rôle}} \\
+\toprule
+\endfirsthead
+\rowcolor{tablehead}
+\textcolor{white}{\textbf{Événement}} & \textcolor{white}{\textbf{Rôle}} \\
+\toprule
+\endhead
+\texttt{claim.created} & Déclenche l'analyse de fraude et l'analyse des pièces justificatives \\
+\texttt{claim.validated} & Déclenche le débit de la cagnotte et le recalcul du coefficient bonus-malus \\
+\texttt{fraud.alert.raised} & Déclenche la corrélation de réseau et la notification à l'administrateur \\
+\texttt{payout.processed} & Déclenche la notification de confirmation au membre bénéficiaire \\
+\bottomrule
+\end{longtable}
+
+\subsection{Exemple de flux : Traitement d'un sinistre}
+Le diagramme de séquence ci-dessous montre comment le module Claims répond instantanément au client (HTTP 201 Created) tout en émettant un événement Kafka pour déclencher en arrière-plan les notifications et l'analyse de fraude.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{sequence_sinistre.png}
+    \caption{Diagramme de séquence du traitement asynchrone d'une déclaration de sinistre}
+    \label{fig:seq_sinistre}
+\end{figure}
+
+\section{Conclusion}
+L'architecture présentée dans ce chapitre clôt la partie consacrée à l'analyse et à la conception du système. La partie suivante détaille la réalisation concrète de la plateforme.
+
+\newpage
+
+% ============================================================
+\part{Réalisation et résultats}
+% ============================================================
+
+% ============================================================
+\chapter{Modules métier implémentés}
+% ============================================================
+
+\section{Introduction}
+Ce chapitre présente les différents modules métier développés au cours de la phase de réalisation du projet.
+
+\section{Module Utilisateurs \& KYC}
+Ce module gère l'authentification sécurisée des utilisateurs, la gestion des rôles, ainsi que le processus de vérification d'identité (\textit{KYC}), incluant une validation automatique via une API tierce et une validation manuelle par l'équipe de conformité en cas d'échec.
+
+% --- IMAGE : Capture du processus KYC ---
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{kyc.png}
+    \caption{Interface de vérification d'identité (KYC)}
+    \label{fig:kyc}
+\end{figure}
+
+\section{Module Groupes \& Matchmaking IA}
+Ce module gère la création et l'administration des groupes de mutualisation, ainsi que la recommandation de groupes compatibles au moyen d'un moteur de \textit{matchmaking} vectoriel.
+
+% --- IMAGE : Capture du catalogue de groupes ---
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{groupe.png}
+    \caption{Catalogue des groupes et interface de recommandation}
+    \label{fig:groupes}
+\end{figure}
+
+\section{Module Trésorerie, Cotisations \& Bonus-Malus}
+Ce module assure le suivi en temps réel de la trésorerie de chaque groupe et implémente l'algorithme de tarification dynamique à travers deux mécanismes complémentaires :
+\begin{itemize}
+    \item \textbf{Une double trésorerie :} une cagnotte principale dédiée au remboursement immédiat des sinistres, et un \textit{Buffer Pool} (fonds de réserve) assurant la pérennité financière du groupe en cas de sinistralité imprévue.
+    \item \textbf{Un algorithme de Bonus-Malus :} la cotisation individuelle s'ajuste dynamiquement selon l'historique du membre :
+\end{itemize}
+
+\begin{equation}
+    \text{Cotisation}_{\text{finale}} = \text{Cotisation}_{\text{base}} \times \min\left(2.00, \; \text{Coef}_{\text{courant}} + 0.20 \times N_{\text{sinistres}}\right)
+\end{equation}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{cagnotte_swagger.png}
+    \caption{Points d'entrée REST du module Trésorerie et Cotisations (Swagger UI)}
+    \label{fig:cagnotte_endpoints}
+\end{figure}
+
+\section{Module Paiements}
+Ce module intègre le prestataire de paiement \textit{Stripe} pour la gestion sécurisée des cotisations et des versements d'indemnisation, protégée par des webhooks signés cryptographiquement.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{paiements_swagger.png}
+    \caption{Points d'entrée REST du module Paiements \& Stripe (Swagger UI)}
+    \label{fig:paiements_endpoints}
+\end{figure}
+
+\section{Module Sinistres}
+Ce module gère la déclaration en ligne des sinistres avec dépôt multipart de pièces justificatives (stockage MinIO), et orchestre le pipeline d'analyse IA et de validation par l'administrateur du groupe. Trois statuts jalonnent le cycle de vie d'un sinistre : \textit{en attente}, puis \textit{validé} ou \textit{rejeté}, et enfin \textit{remboursé}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{sinistres_swagger.png}
+    \caption{Points d'entrée REST du module Sinistres (Swagger UI)}
+    \label{fig:sinistres_endpoints}
+\end{figure}
+
+\section{Modèle de données des modules métier}
+Le tableau suivant présente les principales entités persistées par ces modules et leurs attributs essentiels.
+
+\begin{longtable}{p{4cm}p{3cm}p{8cm}}
+\caption{Principales entités du modèle de données}
+\label{tab:entites} \\
+\rowcolor{tablehead}
+\textcolor{white}{\textbf{Champ}} & \textcolor{white}{\textbf{Type}} & \textcolor{white}{\textbf{Description}} \\
+\toprule
+\endfirsthead
+\rowcolor{tablehead}
+\textcolor{white}{\textbf{Champ}} & \textcolor{white}{\textbf{Type}} & \textcolor{white}{\textbf{Description}} \\
+\toprule
+\endhead
+Utilisateur & Entité & pseudonyme, email, statut de vérification d'identité \\
+Groupe & Entité & nom, spécialité, cotisation de base, capacité maximale \\
+MembreGroupe & Entité & coefficient bonus-malus courant, statut d'adhésion \\
+Cagnotte & Entité & solde principal, solde de réserve de sécurité \\
+Cotisation & Entité & montant, référence de paiement, statut \\
+Sinistre & Entité & montant déclaré, montant approuvé, score de fraude, statut \\
+\bottomrule
+\end{longtable}
+
+\section{Justification des choix techniques}
+Le recours à \textit{FastAPI} pour l'ensemble des services backend a été motivé par sa performance, sa validation native des schémas de données via \textit{Pydantic}, et sa génération automatique de documentation interactive, particulièrement utile dans le cadre d'un développement en binôme nécessitant une coordination fréquente entre les deux contributeurs du projet.
+
+\section{Conclusion}
+Les modules présentés dans ce chapitre constituent le cœur transactionnel de la plateforme. Le chapitre suivant détaille la couche d'intelligence artificielle qui vient enrichir ces modules.
+
+\newpage
+
+% ============================================================
+\chapter{Intelligence artificielle et RAG}
+% ============================================================
+
+\section{Introduction}
+Ce chapitre présente les différents modules d'intelligence artificielle développés dans le cadre du projet, incluant les techniques de \textit{RAG} (\textit{Retrieval-Augmented Generation}).
+
+\section{Chien de Garde — détection de fraude}
+Le module \textit{Chien de Garde} constitue la première ligne de défense de la plateforme contre les déclarations abusives ou frauduleuses. Il implémente un pipeline d'analyse multi-niveaux articulé autour de trois étapes complémentaires :
+\begin{itemize}
+    \item \textbf{Vérification documentaire par OCR :} extraction automatique des données des pièces justificatives (montants, dates, émetteurs) et contrôle de cohérence avec le montant réclamé par le membre.
+    \item \textbf{Analyse de réseau par graphe (\textit{Neo4j}) :} détection des schémas de collusion et des réseaux organisés entre membres (partage d'identifiants bancaires, adresses IP communes, déclarations croisées ou cycliques).
+    \item \textbf{Moteur de scoring hybride :} calcul d'un score de risque normalisé compris entre $0{,}00$ et $1{,}00$.
+\end{itemize}
+
+Lorsque le score d'anomalie dépasse le seuil critique fixé à $0{,}70$, une entité \texttt{AlerteFraude} est automatiquement créée en base de données, l'événement \texttt{fraud.alert.raised} est émis sur le bus Kafka et une notification prioritaire est transmise à l'équipe de conformité pour instruction approfondie.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{pipeline_fraude.png}
+    \caption{Pipeline d'analyse multi-niveaux pour la détection de fraude (Chien de Garde)}
+    \label{fig:pipeline-fraude}
+\end{figure}
+
+\section{Matchmaker — moteur de recommandation}
+Le module \textit{Matchmaker} est un moteur de recommandation hybride conçu pour orienter chaque utilisateur vers les groupes de mutualisation les plus adaptés à son profil de risque et à ses préférences. L'algorithme calcule un score de compatibilité global $S_{\text{global}} \in [0{,}00\, ;\, 1{,}00]$ résultant d'une agrégation pondérée de quatre dimensions clés :
+\begin{itemize}
+    \item \textbf{Similarité d'intérêt thématique ($35\,\%$) :} calcul de similarité cosinus (TF-IDF / vectorisation) entre les centres d'intérêt d'assurance de l'utilisateur et la spécialité du groupe.
+    \item \textbf{Adéquation budgétaire ($25\,\%$) :} évaluation par décroissance gaussienne mesurant la proximité entre la cotisation mensuelle du groupe et le budget maximal déclaré par le membre.
+    \item \textbf{Profil de risque et situation familiale ($25\,\%$) :} corrélation entre le niveau d'aversion au risque (prudent, modéré, ouvert) et la taille du \textit{Buffer Pool}, enrichie par l'analyse des besoins familiaux et la détection d'anti-redondance avec les couvertures existantes.
+    \item \textbf{Vitalité et capacité du groupe ($15\,\%$) :} évaluation du taux de remplissage et de l'activité du groupe afin de privilégier des communautés stables et dynamiques.
+\end{itemize}
+
+Le score final s'exprime selon la formulation suivante :
+\begin{equation}
+    S_{\text{global}} = 0{,}35 \cdot S_{\text{intérêt}} + 0{,}25 \cdot S_{\text{budget}} + 0{,}25 \cdot S_{\text{profil}} + 0{,}15 \cdot S_{\text{vitalité}}
+\end{equation}
+
+Conformément aux exigences de transparence, le moteur génère pour chaque suggestion une liste de justifications explicites en langage naturel (ex. : \textit{« Forte réserve de sécurité adaptée à votre profil prudent »}, \textit{« Parfaitement dans votre budget »}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{matchmaker_schema.png}
+    \caption{Architecture et pondération multicritère du moteur de recommandation (Matchmaker)}
+    \label{fig:matchmaker}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{matchmaker_swagger.png}
+    \caption{Points d'entrée REST du moteur de recommandation IA (Swagger UI)}
+    \label{fig:matchmaker_swagger}
+\end{figure}
+
+\section{Copilote conversationnel (RAG)}
+Le \textit{Copilote conversationnel} est un assistant virtuel intelligent basé sur une architecture RAG (\textit{Retrieval-Augmented Generation}). Il accompagne les membres en répondant à leurs interrogations sur les règlements de groupe, les procédures de sinistre et l'état de leurs dossiers en temps réel. Le système s'articule autour des composants suivants :
+\begin{itemize}
+    \item \textbf{Base vectorielle intégrée (\textit{pgvector}) :} stockage des \textit{embeddings} sémantiques des documents officiels (FAQ, règlements intérieurs, guides d'adhésion).
+    \item \textbf{Moteur d'inférence multilingue :} détection automatique de la langue (français, arabe, anglais) et génération de réponses contextuelles via le LLM \textit{Google Gemini}.
+    \item \textbf{Pipeline d'ingestion dynamique :} interface permettant aux administrateurs de téléverser et vectoriser de nouveaux documents réglementaires en temps réel.
+    \item \textbf{Gestion de contexte et mémoire :} conservation de l'historique conversationnel par identifiant de session.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{architecture_rag.png}
+    \caption{Architecture du pipeline conversationnel RAG (Retrieval-Augmented Generation)}
+    \label{fig:rag}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{architecture_rag_swagger.png}
+    \caption{Points d'entrée REST du Copilote RAG (Documentation Swagger UI)}
+    \label{fig:rag_swagger}
+\end{figure}
+
+\section{Analyseur de preuves (OCR + RAG)}
+Ce module combine reconnaissance optique de caractères et génération augmentée par récupération pour analyser automatiquement les pièces justificatives d'un sinistre et en vérifier la cohérence avec le montant déclaré.
+
+\section{Explicabilité des décisions algorithmiques}
+Un module dédié à l'explicabilité complète le dispositif de détection de fraude : lorsqu'un score d'anomalie dépasse un seuil défini, une explication en langage naturel est générée à partir des variables ayant le plus contribué à ce score, afin que l'administrateur du groupe, qui n'est pas nécessairement familier des méthodes de science des données, puisse fonder sa décision sur une justification compréhensible plutôt que sur un chiffre isolé.
+
+\section{Pipeline d'entraînement et de déploiement des modèles}
+La mise en production des modèles suit un pipeline structuré en plusieurs étapes : l'ingestion des données d'événements applicatifs, le calcul des caractéristiques utilisées à l'entraînement, l'entraînement et le suivi de version du modèle, le déploiement sous forme de service d'inférence indépendant, et le suivi de la performance du modèle en production. Cette organisation garantit la reproductibilité des résultats et la capacité à revenir à une version antérieure du modèle en cas de dégradation observée.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{pipeline_mlops.png}
+    \caption{Pipeline d'entraînement, déploiement et monitoring des modèles IA (MLOps)}
+    \label{fig:mlops}
+\end{figure}
+
+\section{Principe transversal d'assistance à la décision}
+Sur l'ensemble des sujets sensibles traités par les modules d'intelligence artificielle, un principe transversal a guidé l'ensemble de nos choix de conception : les résultats produits par les modèles constituent une aide à la décision, jamais une décision automatisée définitive. Ce choix, motivé à la fois par des considérations éthiques et par le positionnement de tiers de confiance technique de la plateforme, garantit qu'une personne habilitée reste systématiquement responsable de chaque décision à fort impact pour les membres.
+
+\section{Conclusion}
+La couche d'intelligence artificielle présentée dans ce chapitre illustre le principe directeur du projet : l'intelligence artificielle assiste la décision humaine, sans jamais s'y substituer sur les sujets les plus sensibles.
+
+\newpage
+
+% ============================================================
+\chapter{Sécurité, conformité et audit}
+% ============================================================
+
+\section{Introduction}
+Ce chapitre détaille les mécanismes de sécurité, de conformité et d'audit mis en œuvre au sein de la plateforme TrustPool.
+
+\section{Pseudonymisation et coffre-fort chiffré}
+Afin de concilier la transparence inhérente au modèle collaboratif et le respect strict de la confidentialité (RGPD), la plateforme met en œuvre un principe de \textit{Zero-Knowledge KYC} et de pseudonymisation stricte :
+\begin{itemize}
+    \item \textbf{Espace applicatif pseudonymisé :} chaque membre interagit exclusivement sous un pseudonyme unique généré lors de l'inscription (ex. : \texttt{alex\_cyber}). Les administrateurs et membres des groupes n'ont jamais accès aux identités réelles, limitant ainsi tout risque de discrimination ou de ciblage.
+    \item \textbf{Coffre-fort KYC isolé :} les données d'identité nominatives (nom, prénom, date de naissance, documents officiels) sont conservées dans une table dédiée (\texttt{kyc\_vault}) et sur le stockage d'objets MinIO, totalement découplées des tables transactionnelles.
+    \item \textbf{Chiffrement symétrique par enveloppe (Fernet / KMS) :} l'intégralité des données sensibles est chiffrée au repos via l'algorithme AES (implémentation \textit{Fernet}), au moyen d'une clé maîtresse gérée par le service de sécurité KMS.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{coffre_fort_kyc.png}
+    \caption{Architecture de pseudonymisation et coffre-fort chiffré (Zero-Knowledge KYC)}
+    \label{fig:coffre-fort}
+\end{figure}
+
+\section{Procédure de levée d'anonymat}
+En cas de suspicion de fraude avérée, l'administrateur d'un groupe peut initier une demande motivée de levée d'anonymat, laquelle doit être validée par l'équipe de conformité avant tout déchiffrement, l'ensemble de la procédure étant tracé dans un journal d'audit immuable.
+
+\section{Authentification et contrôle d'accès}
+La sécurisation des échanges et des ressources de l'API repose sur un mécanisme d'authentification sans état (\textit{stateless}) basé sur des jetons signés \textit{JWT} (\textit{JSON Web Token}) et un modèle de contrôle d'accès basé sur les rôles (\textit{RBAC}) :
+\begin{itemize}
+    \item \textbf{Émission et signature des jetons :} lors d'une connexion réussie (\texttt{POST /users\_kyc/login}), le serveur vérifie le mot de passe haché par \textit{BCrypt} et génère un jeton JWT signé avec l'algorithme HMAC-SHA256. Ce jeton encapsule l'identifiant unique, le pseudonyme, le rôle attribué et le statut KYC du membre.
+    \item \textbf{Contrôle d'accès basé sur les rôles (RBAC) :} chaque route de l'API FastAPI est protégée par des dépendances d'autorisation strictes (\texttt{require\_role}) discriminant les profils \textit{membre}, \textit{admin\_groupe} et \textit{equipe\_conformite}.
+    \item \textbf{Verrou de conformité KYC (\texttt{require\_verified\_kyc}) :} même authentifié, un utilisateur dont le statut KYC n'est pas \texttt{verified} se voit refuser l'accès aux opérations sensibles (création de groupe, déclaration de sinistre, adhésion, paiements).
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{flux_jwt.png}
+    \caption{Flux d'authentification JWT, validation des rôles (RBAC) et verrouillage KYC}
+    \label{fig:flux-jwt}
+\end{figure}
+
+\section{Verrouillage des actions sensibles}
+Indépendamment de la validité de l'adresse électronique utilisée à l'inscription, aucune action à impact financier ou communautaire n'est autorisée tant que le processus de vérification d'identité n'a pas abouti. Ce principe s'applique notamment à l'adhésion à un groupe, à la déclaration d'un sinistre, et à toute opération de paiement.
+
+\section{Confirmation d'inscription sécurisée}
+Le processus d'inscription repose sur une confirmation en deux temps : les informations saisies sont d'abord conservées dans une table d'inscriptions en attente, distincte de la table des utilisateurs actifs, et ce n'est qu'après validation d'un code de confirmation à six chiffres, transmis par courrier électronique et valide quinze minutes, que le compte utilisateur est effectivement créé. Ce choix de conception garantit qu'aucune adresse électronique non vérifiée ne puisse être associée à un compte actif sur la plateforme.
+
+\section{Registre des risques identifiés}
+Le tableau suivant synthétise les principaux risques identifiés lors de la conception du système et les mesures de mitigation retenues.
+
+\begin{longtable}{p{4.2cm}p{4cm}p{4.3cm}}
+\caption{Registre des risques identifiés}
+\label{tab:risques} \\
+\rowcolor{tablehead}
+\textcolor{white}{\textbf{Risque}} & \textcolor{white}{\textbf{Impact potentiel}} & \textcolor{white}{\textbf{Mesure de mitigation}} \\
+\toprule
+\endfirsthead
+\rowcolor{tablehead}
+\textcolor{white}{\textbf{Risque}} & \textcolor{white}{\textbf{Impact potentiel}} & \textcolor{white}{\textbf{Mesure de mitigation}} \\
+\toprule
+\endhead
+Fausse déclaration à l'inscription & Tarification initiale non représentative du risque réel & Cotisation de base identique pour tous, ajustement ultérieur par le mécanisme bonus-malus \\
+Fraude organisée entre comptes & Sinistralité anormale, perte de confiance & Analyse de réseau via base orientée graphe \\
+Fuite de données d'identité & Atteinte grave à la vie privée & Chiffrement systématique, coffre-fort séparé \\
+Décision biaisée d'un administrateur & Iniquité de traitement entre membres & Explicabilité systématique, traçabilité de toute décision \\
+\bottomrule
+\end{longtable}
+
+\section{Conclusion}
+Les mécanismes présentés dans ce chapitre garantissent un niveau de sécurité et de conformité cohérent avec la sensibilité des données manipulées par la plateforme.
+
+\newpage
+
+% ============================================================
+\chapter{Interface utilisateur et expérience produit}
+% ============================================================
+
+\section{Introduction}
+Ce chapitre présente l'interface utilisateur développée pour la plateforme TrustPool ainsi que les partis pris ergonomiques et visuels garantissant une expérience utilisateur fluide, transparente et rassurante.
+
+\section{Design system et identité visuelle}
+L'identité visuelle de TrustPool a été pensée pour inspirer confiance et refléter la solidarité du modèle collaboratif :
+\begin{itemize}
+    \item \textbf{Palette chromatique :} fond sombre (\textit{Dark Theme}) rehaussé d'accents dorés, symbolisant la valeur et la sécurité financière.
+    \item \textbf{Composants modernes :} cartes semi-transparentes avec effet \textit{Glassmorphism}, barres de progression dynamiques pour les cagnottes et badges d'état colorés.
+    \item \textbf{Micro-interactions :} transitions de pages et animations fluides via la bibliothèque \textit{Framer Motion}, renforçant le caractère réactif de l'interface.
+    \item \textbf{Stack frontend :} \textit{React 18} avec \textit{Vite} pour le bundling, \textit{Tailwind CSS} pour le design utilitaire et \textit{React Router} pour la navigation.
+\end{itemize}
+
+\section{Parcours et pages principales}
+
+\subsection{Page d'accueil et présentation du concept}
+La page d'accueil introduit le modèle d'assurance collaborative P2P à travers une section héro immersive, une vidéo explicative contextuelle et une présentation des avantages de la mutualisation solidaire.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{hero_background.png}
+    \caption{Page d'accueil de la plateforme TrustPool (section héro)}
+    \label{fig:page-accueil}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{illustration.png}
+    \caption{Illustration visuelle du modèle de mutualisation solidaire}
+    \label{fig:illustration}
+\end{figure}
+
+\subsection{Inscription, vérification d'identité (KYC) et récupération de compte}
+Le parcours d'accès utilisateur a été sécurisé sur l'ensemble de son cycle de vie :
+\begin{itemize}
+    \item \textbf{Inscription et confirmation OTP :} saisie des identifiants avec vérification immédiate de l'adresse email par un code OTP à 6 chiffres éphémère (validité 15 minutes).
+    \item \textbf{Vérification d'identité (KYC) :} formulaire de dépôt des pièces justificatives officielles (CNI, passeport) chiffrées de bout en bout et conservées dans le coffre-fort sécurisé.
+    \item \textbf{Récupération de mot de passe :} mécanisme de réinitialisation sécurisé par envoi d'un lien à usage unique contenant un jeton d'authentification temporaire signé cryptographiquement.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{inscription.png}
+    \caption{Interface d'inscription et de vérification d'identité (KYC)}
+    \label{fig:inscription}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{mot_de_passe_oublie.png}
+    \caption{Interface de demande et de réinitialisation de mot de passe sécurisée}
+    \label{fig:mot_de_passe_oublie}
+\end{figure}
+
+\subsection{Tableau de bord membre}
+L'espace membre constitue le cockpit central de l'utilisateur, conçu pour offrir une transparence totale sur ses engagements et son impact solidaire :
+\begin{itemize}
+    \item \textbf{Indicateurs clés (KPI) en temps réel :} affichage synthétique du nombre de groupes rejoints, du total des cagnottes mutualisées, du montant de la prochaine cotisation cumulée et du coefficient bonus-malus individuel courant.
+    \item \textbf{Visualisation financière \& Recommandations IA :} graphique circulaire ventilant les fonds entre cagnotte disponible et réserve de sécurité (\textit{Buffer Pool}), accompagné d'un widget de suggestions de nouveaux groupes compatibles via le \textit{Matchmaker}.
+    \item \textbf{Suivi de l'impact solidaire \& Sinistres :} compteur mesurant concrètement l'aide apportée à la communauté (nombre de sinistres indemnisés grâce aux cotisations du membre), suivi transversal des dossiers de sinistres déclarés et comparateur multi-groupes détaillé.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{dashboard_membre.png}
+    \caption{Tableau de bord consolidé du membre (KPIs, impact solidaire et gestion multi-groupes)}
+    \label{fig:dashboard-membre}
+\end{figure}
+
+\subsection{Catalogue, gestion et arbitrage d'un groupe de mutualisation}
+La gestion des communautés de mutualisation s'articule autour de trois vues complémentaires offrant une autonomie complète aux membres et aux administrateurs :
+\begin{itemize}
+    \item \textbf{Catalogue d'exploration des groupes publics :} grille de découverte présentant chaque communauté avec sa spécialité (Auto, Matériel Pro, Santé, etc.), sa cotisation de base, sa jauge de capacité et son statut d'ouverture aux adhésions.
+    \item \textbf{Vue détaillée et trésorerie solidaire :} cockpit du groupe affichant la cagnotte disponible, le \textit{Buffer Pool} de sécurité, le nombre de membres actifs, ainsi que l'historique des flux financiers (cotisations perçues et indemnisations versées).
+    \item \textbf{Console d'administration et arbitrage IA des sinistres :} interface dédiée à l'administrateur du groupe pour statuer sur les demandes d'adhésion (avec score de matching IA) et arbitrer les déclarations de sinistres grâce à l'aide à la décision fournie par le \textit{Chien de Garde} (alerte de fraude en \%, incohérence facture/déclaration, examen des pièces jointes et validation directe avec débit de la cagnotte).
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{catalogue_groupes.png}
+    \caption{Catalogue public et exploration des groupes de mutualisation}
+    \label{fig:catalogue-groupes}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{detail_groupe.png}
+    \caption{Page de détail d'un groupe et suivi de la trésorerie solidaire}
+    \label{fig:detail-groupe}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{gestion_sinistres_groupe.png}
+    \caption{Interface d'arbitrage de l'administrateur et assistance IA à la décision}
+    \label{fig:arbitrage-sinistre-groupe}
+\end{figure}
+
+\subsection{Cycle de vie, déclaration et arbitrage des sinistres}
+Le traitement d'un sinistre au sein de TrustPool s'articule autour d'un flux collaboratif et sécurisé découpé en trois interfaces complémentaires :
+\begin{itemize}
+    \item \textbf{Formulaire de déclaration en ligne (Côté Membre) :} interface guidée permettant la sélection du groupe concerné, la saisie du montant réclamé, une description circonstanciée des faits et le dépôt multipart des pièces justificatives (factures, devis, photographies) téléversées vers le stockage d'objets sécurisé MinIO.
+    \item \textbf{Tableau de bord et suivi d'avancement (Côté Membre) :} espace récapitulatif permettant à l'assuré de suivre en temps réel le statut de ses demandes (En attente, En cours d'analyse, Validé ou Rejeté) avec notification automatique des décisions.
+    \item \textbf{Console d'arbitrage assistée par IA (Côté Administrateur) :} cockpit d'évaluation fournissant une aide précieuse à la décision humaine. L'IA analyse les justificatifs par OCR, compare le montant déclaré avec la facture, détecte les anomalies documentaires et calcule un score de fraude (ex. : \textit{Alerte Fraude IA 95\,\%}). L'administrateur peut alors examiner les pièces jointes et valider d'un clic l'indemnisation avec débit automatique de la cagnotte, ou motiver un refus.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{declaration_sinistre.png}
+    \caption{Formulaire de déclaration de sinistre et téléversement des pièces justificatives}
+    \label{fig:declaration-sinistre}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{dashboard_sinistres.png}
+    \caption{Tableau de bord de suivi du statut et de l'historique des sinistres}
+    \label{fig:dashboard-sinistres}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{arbitrage_sinistre_ia.png}
+    \caption{Console d'arbitrage de l'administrateur avec rapport d'analyse IA et détection de fraude}
+    \label{fig:arbitrage-sinistre-ia}
+\end{figure}
+
+\section{Contenus multimédias}
+Des contenus vidéo explicatifs ont été intégrés de façon contextuelle au sein de l'application pour accompagner l'utilisateur sur les mécanismes les plus sensibles (sécurité, tarification dynamique, détection de fraude), plutôt que d'être cantonnés à une unique page de présentation générale.
+
+\section{Distinction entre tableau de bord membre et tableau de bord de groupe}
+Une attention particulière a été portée à la séparation entre les informations transversales à un membre et les informations propres à un groupe donné. Le tableau de bord membre agrège les données de l'ensemble des groupes auxquels appartient l'utilisateur, tandis que le tableau de bord de groupe présente le détail complet d'un groupe spécifique, évitant ainsi toute redondance entre les deux espaces.
+
+\section{Espace dédié à l'équipe de conformité}
+Un portail de supervision haute sécurité est exclusivement réservé aux officiers de conformité et auditeurs juridiques, totalement isolé des espaces membres et administrateurs. Il offre une vue holistique sur la gouvernance, la régulation et la conformité légale de la plateforme à travers trois volets majeurs :
+\begin{itemize}
+    \item \textbf{Cockpit de supervision et métriques réglementaires :} tableau de bord synthétisant les indicateurs critiques en temps réel (dossiers KYC en attente avec alerte de retard $>48$\,h, taux global de validation, demandes urgentes de levée d'anonymat, pools sous surveillance de solvabilité et fraudes escaladées).
+    \item \textbf{Centre de validation KYC et santé financière des pools :} interface de traitement des vérifications d'identité prioritaires, instruction des requêtes de levée d'anonymat motivées par les administrateurs, et monitoring de la solvabilité des cagnottes (\textit{Buffer Pool} de réserve, ratios de sinistralité et alertes d'état critique).
+    \item \textbf{Journal d'audit légal immuable et gestion des fraudes IA :} registre d'audit complet et infalsifiable traçant chaque action sensible (horodatage précis, identifiant de la cible, charge utile JSON et acteur responsable), couplé à une console de traitement des alertes de fraude escaladées par l'IA (scores de suspicion jusqu'à $95\,\%$, analyse comparative des pièces justificatives et statut d'instruction).
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{eqc1.png}
+    \caption{Cockpit de supervision réglementaire et indicateurs clés de conformité}
+    \label{fig:conformite-cockpit}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{eqc2.png}
+    \caption{Centre de validation KYC, litiges légaux et surveillance de la solvabilité des pools}
+    \label{fig:conformite-kyc-solvabilite}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{eqc3.png}
+    \caption{Journal d'audit légal immuable et console des fraudes IA escaladées}
+    \label{fig:conformite-audit-fraude}
+\end{figure}
+
+\section{Conclusion}
+L'interface développée allie rigueur technique et clarté visuelle, rendant accessibles des mécanismes complexes (IA, chiffrement, tarification dynamique) à travers une expérience utilisateur intuitive et rassurante.
+
+\newpage
+
+% ============================================================
+\chapter{Tests et validation}
+% ============================================================
+
+\section{Introduction}
+Ce chapitre présente la stratégie de tests mise en œuvre ainsi que les résultats obtenus.
+
+\section{Stratégie de tests}
+La stratégie d'assurance qualité repose sur une suite de tests automatisés développée avec \textit{Pytest} et le client de test asynchrone de \textit{FastAPI}. Elle couvre exhaustivement les quatre dimensions critiques de la plateforme :
+\begin{itemize}
+    \item \textbf{Authentification \& Sécurité des comptes (\texttt{test\_auth.py}, \texttt{test\_password\_reset.py}) :} validation du cycle d'inscription, vérification OTP par email, émission/expiration des jetons JWT et réinitialisation de mot de passe par jeton temporaire.
+    \item \textbf{Coffre-fort \& Verrouillage KYC (\texttt{test\_kyc.py}, \texttt{test\_kyc\_lock.py}) :} vérification du chiffrement symétrique \textit{Fernet/KMS} et blocage strict des actions sensibles pour tout utilisateur non certifié (\textit{HTTP 403 KYC requis}).
+    \item \textbf{Logique métier \& Trésorerie (\texttt{test\_groups.py}, \texttt{test\_claims.py}, \texttt{test\_payments.py}) :} tests de création de groupe, respect des capacités maximales, cycle de vie des sinistres, ajustement dynamique du bonus-malus et webhooks Stripe.
+    \item \textbf{Composants d'intelligence artificielle (\texttt{test\_proof\_analyzer.py}) :} évaluation de l'analyseur de pièces justificatives (extraction OCR et détection d'incohérences de facturation).
+\end{itemize}
+
+\begin{longtable}{p{4.5cm}p{6cm}p{3cm}}
+\caption{Synthèse de la suite de tests automatisés}
+\label{tab:tests-summary} \\
+\rowcolor{tablehead}
+\textcolor{white}{\textbf{Fichier de test}} & \textcolor{white}{\textbf{Périmètre fonctionnel}} & \textcolor{white}{\textbf{Résultat}} \\
+\toprule
+\endfirsthead
+\rowcolor{tablehead}
+\textcolor{white}{\textbf{Fichier de test}} & \textcolor{white}{\textbf{Périmètre fonctionnel}} & \textcolor{white}{\textbf{Résultat}} \\
+\toprule
+\endhead
+\texttt{test\_auth.py} & Inscription OTP, Login JWT, Contrôle RBAC & \textcolor{green!60!black}{\textbf{100\,\% Succès}} \\
+\texttt{test\_password\_reset.py} & Réinitialisation sécurisée de mot de passe & \textcolor{green!60!black}{\textbf{100\,\% Succès}} \\
+\texttt{test\_kyc\_lock.py} & Verrouillage des actions sensibles sans KYC & \textcolor{green!60!black}{\textbf{100\,\% Succès}} \\
+\texttt{test\_groups.py} & Gestion des cagnottes, adhésions et plafonds & \textcolor{green!60!black}{\textbf{100\,\% Succès}} \\
+\texttt{test\_claims.py} & Cycle de vie des sinistres et bonus-malus & \textcolor{green!60!black}{\textbf{100\,\% Succès}} \\
+\texttt{test\_payments.py} & Intégration Stripe et encaissement cotisations & \textcolor{green!60!black}{\textbf{100\,\% Succès}} \\
+\texttt{test\_proof\_analyzer.py} & OCR justificatifs et détection d'anomalies IA & \textcolor{green!60!black}{\textbf{100\,\% Succès}} \\
+\bottomrule
+\end{longtable}
+
+\section{Résultats de la suite de tests}
+L'ensemble de la suite de tests automatisés a été exécuté avec succès, garantissant une couverture fonctionnelle complète et la non-régression du système lors de chaque évolution.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{resultats_tests.png}
+    \caption{Rapport d'exécution de la suite de tests automatisés (Pytest)}
+    \label{fig:resultats-tests}
+\end{figure}
+
+\section{Conclusion}
+Les résultats présentés dans ce chapitre attestent de la robustesse fonctionnelle atteinte par la plateforme au terme de la phase de réalisation.
+
+\newpage
+
+% ============================================================
+\chapter*{Conclusion générale}
+\addcontentsline{toc}{chapter}{Conclusion générale}
+% ============================================================
+
+\section*{Bilan du projet et synthèse des réalisations}
+Ce projet de fin d'études avait pour ambition de concevoir et de réaliser \textbf{TrustPool}, une plateforme SaaS innovante d'assurance collaborative \textit{peer-to-peer} (P2P) assistée par intelligence artificielle. En rupture avec les modèles d'assurance traditionnels souvent perçus comme opaques et asymétriques, TrustPool réintroduit les principes fondamentaux de solidarité, de transparence financière et d'équité communautaire.
+
+Notre démarche s'est articulée autour d'une méthodologie d'ingénierie logicielle rigoureuse, franchissant avec succès l'ensemble des étapes du cycle de développement :
+\begin{itemize}
+    \item \textbf{Cadrage et modélisation formelle :} formalisation détaillée du cahier des charges fonctionnel et modélisation UML complète (diagrammes de cas d'utilisation, de classes du domaine, d'états-transitions et de séquences dynamiques).
+    \item \textbf{Architecture technique robuste et distribuée :} mise en œuvre d'une architecture en couches et événementielle (\textit{Layered \& Event-Driven}) orchestrée par \textit{Apache Kafka}, s'appuyant sur une persistance polyglotte adaptée à chaque besoin (\textit{PostgreSQL} avec extension vectorielle \textit{pgvector}, base orientée graphe \textit{Neo4j} et stockage d'objets \textit{MinIO}).
+    \item \textbf{Socle transactionnel et sécurité de pointe :} développement de micro-modules backend sous \textit{FastAPI} intégrant un mécanisme de \textit{Zero-Knowledge KYC} (pseudonymisation stricte et coffre-fort d'identité chiffré par \textit{Fernet/KMS}), une tarification dynamique par bonus-malus et des paiements sécurisés via \textit{Stripe}.
+    \item \textbf{Intelligence artificielle au service de l'humain :} déploiement d'un pipeline complet comprenant le \textit{Chien de Garde} (détection de fraude documentaire OCR et analyse de collusion sur graphe), le \textit{Matchmaker} (moteur de recommandation multicritère avec explicabilité native XAI) et un copilote conversationnel multilingue fondé sur une architecture \textit{RAG} (\textit{Retrieval-Augmented Generation}).
+    \item \textbf{Interface utilisateur et validation qualité :} réalisation d'une application web réactive sous \textit{React 18} / \textit{Tailwind CSS} et validation exhaustive de la robustesse logicielle par une suite de tests automatisés couvrant 100\,\% des flux critiques.
+\end{itemize}
+
+\section*{Défis techniques et arbitrages structurants}
+La concrétisation de cette vision a soulevé des problématiques complexes nécessitant des arbitrages structurants :
+\begin{enumerate}
+    \item \textbf{Gouvernance et responsabilité légale :} nous avons délibérément privilégié un modèle d'arbitrage où l'administrateur du groupe conserve la responsabilité décisionnelle ultime — éclairé en temps réel par les scores de l'IA — plutôt qu'un vote communautaire direct. Ce choix préserve une chaîne de responsabilité juridique claire et évite les blocages décisionnels tout en maintenant le rôle de tiers de confiance technique de la plateforme.
+    \item \textbf{Équilibre entre transparence et confidentialité (RGPD) :} l'adoption de la pseudonymisation par défaut, couplée à une procédure formelle et auditable de levée d'anonymat en cas de litige avéré, démontre qu'il est possible de concilier la traçabilité collective et la protection absolue de la vie privée des assurés.
+\end{enumerate}
+
+\section*{Perspectives d'évolution}
+Si les objectifs initiaux ont été pleinement atteints, plusieurs perspectives d'évolution prometteuses se dessinent pour consolider l'écosystème TrustPool :
+\begin{itemize}
+    \item \textbf{Mécanisme de réassurance solidaire inter-groupes :} mise en place d'un fonds de garantie fédéré permettant à des pools d'assurance partenaires de se soutenir mutuellement en cas d'événement climatique ou sinistre d'ampleur exceptionnelle.
+    \item \textbf{Automatisation par Smart Contracts :} exploration de l'automatisation contractuelle sur registre distribué pour l'exécution immédiate et sans friction des indemnisations paramétriques ne nécessitant pas d'arbitrage humain.
+    \item \textbf{Modélisation actuarielle prédictive avancée :} intégration de modèles d'apprentissage profond pour affiner dynamiquement le dimensionnement cible des réserves de sécurité (\textit{Buffer Pools}) en fonction des tendances macroéconomiques et saisonnières.
+\end{itemize}
+
+\vspace{0.5cm}
+En conclusion, ce projet de fin d'année a constitué une expérience particulièrement enrichissante. Il nous a permis de mobiliser et de synthétiser l'ensemble des compétences acquises tout au long de notre cursus d'ingénieur en Big Data, Data Science et Intelligence Artificielle — allant de la conception d'architectures distribuées et du MLOps à la cybersécurité appliquée — tout en nous confrontant aux réalités d'un produit logiciel à fort impact sociétal.
+
+\newpage
+
+% ============================================================
+\chapter*{Bibliographie}
+\addcontentsline{toc}{chapter}{Bibliographie}
+% ============================================================
+\textit{[Section à compléter selon les sources effectivement consultées au cours du projet — ouvrages, articles, documentation technique, sites web avec date de consultation, classés par ordre alphabétique d'auteur.]}
+
+\newpage
+
+% ============================================================
+\chapter*{Annexes}
+\addcontentsline{toc}{chapter}{Annexes}
+% ============================================================
+\section*{Annexe A — Diagrammes UML complets}
+\textit{[Versions détaillées des diagrammes présentés au chapitre 4.]}
+
+\section*{Annexe B — Extraits de code significatifs}
+\textit{[Extraits de code illustrant les modules décrits au chapitre 6.]}
+
+\section*{Annexe C — Captures d'interface}
+\textit{[Captures d'écran des principales pages de l'application.]}
+
+\section*{Annexe D — Schéma DBML complet}
+\begin{verbatim}
+Table users {
+  id uuid [pk]
+  pseudonyme varchar [unique]
+  email varchar [unique]
+  statut_kyc varchar
+  role varchar
+}
+
+Table kyc_vault {
+  id uuid [pk]
+  user_id uuid [unique]
+  donnees_chiffrees bytea
+  statut_verification varchar
+}
+
+Table groups {
+  id uuid [pk]
+  nom varchar
+  specialite varchar
+  est_ouvert boolean
+  cotisation_de_base numeric
+  admin_id uuid
+}
+
+Table memberships {
+  id uuid [pk]
+  user_id uuid
+  group_id uuid
+  coefficient_actuel numeric
+  nb_sinistres_periode integer
+}
+
+Table pots {
+  id uuid [pk]
+  group_id uuid [unique]
+  solde_actuel numeric
+  solde_buffer_pool numeric
+}
+
+Table contributions {
+  id uuid [pk]
+  membership_id uuid
+  montant_final numeric
+  statut_paiement varchar
+}
+
+Table claims {
+  id uuid [pk]
+  membership_id uuid
+  montant_declare numeric
+  statut varchar
+  score_fraude numeric
+  valide_par_admin_id uuid
+}
+
+Table fraud_alerts {
+  id uuid [pk]
+  claim_id uuid [unique]
+  score numeric
+  niveau_severite varchar
+}
+
+Table anonymity_lift_requests {
+  id uuid [pk]
+  claim_id uuid
+  user_id uuid
+  statut varchar
+}
+
+Ref: kyc_vault.user_id > users.id
+Ref: memberships.user_id > users.id
+Ref: memberships.group_id > groups.id
+Ref: pots.group_id > groups.id
+Ref: contributions.membership_id > memberships.id
+Ref: claims.membership_id > memberships.id
+Ref: fraud_alerts.claim_id > claims.id
+Ref: anonymity_lift_requests.claim_id > claims.id
+\end{verbatim}
+
+\section*{Annexe E — Glossaire des termes techniques}
+\begin{longtable}{p{4cm}p{9.5cm}}
+\toprule
+\textbf{Cagnotte} & Trésorerie solidaire d'un groupe, alimentée par les cotisations des membres \\
+\textbf{Coefficient bonus-malus} & Multiplicateur individuel appliqué à la cotisation de base, évoluant selon le comportement du membre \\
+\textbf{Matchmaker} & Moteur de recommandation de groupes compatibles avec le profil d'un utilisateur \\
+\textbf{Levée d'anonymat} & Procédure légale exceptionnelle permettant de retrouver l'identité réelle d'un membre pseudonymisé \\
+\textbf{Embedding} & Représentation vectorielle numérique d'un texte ou d'un profil, utilisée pour calculer des similarités sémantiques \\
+\textbf{Tiers de confiance technique} & Positionnement de la plateforme, fournisseur d'infrastructure et d'intelligence, sans porter lui-même la responsabilité légale des décisions de sinistre \\
+\bottomrule
+\end{longtable}
+
+\end{document}
