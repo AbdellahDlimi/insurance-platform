@@ -23,7 +23,7 @@ USE_SMTP = os.environ.get("USE_SMTP", "false").lower() in ("true", "1", "yes") o
 
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
-CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000").split(",")
+CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000,http://localhost:3001,http://localhost:3002,http://127.0.0.1:5173,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3002").split(",")
 
 # Stripe config
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")

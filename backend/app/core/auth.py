@@ -24,8 +24,8 @@ if not SECRET_KEY:
         "Ajoutez-la dans votre fichier .env"
     )
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-REFRESH_TOKEN_EXPIRE_DAYS = 7
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "120"))
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.environ.get("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
 oauth2_scheme = HTTPBearer()
 
@@ -54,6 +54,20 @@ def create_refresh_token(payload: TokenPayload) -> str:
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
+def decode_token(token: str) -> TokenPayload:
+    """Décode et valide un token JWT (access ou refresh)."""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Token invalide ou expiré",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return TokenPayload(**decoded)
+    except jwt.PyJWTError:
+        raise credentials_exception
+
+
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(oauth2_scheme)) -> TokenPayload:
     """
     Dépendance FastAPI à utiliser dans TOUS les routers (A et B) :
@@ -62,17 +76,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(oauth2_
         def my_endpoint(current_user: TokenPayload = Depends(get_current_user)):
             ...
     """
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Token invalide ou expiré",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        token = credentials.credentials
-        decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return TokenPayload(**decoded)
-    except jwt.PyJWTError:
-        raise credentials_exception
+    return decode_token(credentials.credentials)
 
 
 def require_role(required_role: str):

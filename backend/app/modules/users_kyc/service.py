@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from email_validator import validate_email, EmailNotValidError
 
-from app.core.auth import TokenPayload, create_access_token, create_refresh_token
+from app.core.auth import TokenPayload, create_access_token, create_refresh_token, decode_token
 from app.core.kms import encrypt, decrypt
 from app.modules.users_kyc import repository
 from app.modules.users_kyc.models import Utilisateur, CoffreKYC
@@ -286,6 +286,35 @@ def login_user(db: Session, data: UserLogin) -> TokenResponse:
     return TokenResponse(
         access_token=create_access_token(payload),
         refresh_token=create_refresh_token(payload),
+    )
+
+
+def refresh_access_token(db: Session, refresh_token_str: str) -> TokenResponse:
+    """
+    Vérifie le refresh token et émet une nouvelle paire (access_token, refresh_token).
+    """
+    payload = decode_token(refresh_token_str)
+    
+    user = repository.get_user_by_id(db, uuid.UUID(payload.user_id))
+    if not user:
+        agent = repository.get_agent_by_id(db, uuid.UUID(payload.user_id))
+        if not agent:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Utilisateur non trouvé ou session révoquée",
+            )
+        new_payload = TokenPayload(user_id=str(agent.id), role="admin_plateforme", group_ids=[])
+    else:
+        if user.statut_compte == "suspendu":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Compte suspendu",
+            )
+        new_payload = TokenPayload(user_id=str(user.id), role=user.role, group_ids=payload.group_ids)
+
+    return TokenResponse(
+        access_token=create_access_token(new_payload),
+        refresh_token=create_refresh_token(new_payload),
     )
 
 

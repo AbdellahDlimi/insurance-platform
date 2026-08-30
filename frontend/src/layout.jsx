@@ -58,7 +58,8 @@ export const Navbar = ({ currentPath, navigate, user, logout }) => {
 
   /* Fetch unread count + polling every 30s */
   const fetchUnread = useCallback(() => {
-    if (user) {
+    const token = localStorage.getItem('access_token');
+    if (user && token) {
       api.getNotifications(true)
         .then(res => setUnreadCount(res.length))
         .catch(() => {});

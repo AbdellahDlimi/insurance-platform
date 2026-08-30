@@ -386,7 +386,19 @@ export const GroupDetails = ({ user, navigate, groupId }) => {
       const data = await api.createCheckoutSession(cotisationId);
       const targetUrl = data.checkout_url || data.url;
       if (targetUrl) {
-        window.location.href = targetUrl;
+        // Check if the URL is on the same origin (simulated/local checkout)
+        // If so, use SPA navigation instead of a hard redirect
+        try {
+          const urlObj = new URL(targetUrl, window.location.origin);
+          if (urlObj.origin === window.location.origin) {
+            navigate(urlObj.pathname + urlObj.search);
+          } else {
+            // External Stripe URL → hard redirect
+            window.location.href = targetUrl;
+          }
+        } catch {
+          window.location.href = targetUrl;
+        }
       } else {
         showToast('URL de redirection introuvable.', 'error');
       }
